@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Scales from './features/Scales.jsx';
 import Chords from './features/Chords.jsx';
+import Envelope from './features/Envelope.jsx';
 
 const TAB_DEFINITIONS = [
   { id: 'scales', label: 'Scales', element: <Scales /> },
-  { id: 'chords', label: 'Chords', element: <Chords /> }
+  { id: 'chords', label: 'Chords', element: <Chords /> },
+  { id: 'envelope', label: 'Envelope', element: <Envelope /> }
 ];
 
 function App() {
