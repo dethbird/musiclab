@@ -247,13 +247,15 @@ function Chords({ note = 'A', octave = '4' }) {
                         <button
                           type="button"
                           className="button is-small"
+                          title={`View ${v.name} on keyboard`}
+                          aria-label={`View ${v.name} on keyboard`}
                           onClick={() => {
                             // open modal with this voicing
                             setModalVoicing({ name: v.name, list: v.list, midis });
                             setIsModalOpen(true);
                           }}
                         >
-                          View
+                          <span className="icon" aria-hidden="true"><i className="fas fa-eye" /></span>
                         </button>
                       </td>
                     </tr>
