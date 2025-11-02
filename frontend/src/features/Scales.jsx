@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 
 function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare }) {
   const [selectedScaleId, setSelectedScaleId] = useState('');
+  const selectRef = useRef(null);
 
   const selectedScale = useMemo(() => {
     return scales.find((scale) => scale.id === selectedScaleId) ?? null;
@@ -45,6 +46,7 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
               <div className="select is-fullwidth">
                 <select
                   id="scale-select"
+                  ref={selectRef}
                   value={selectedScaleId}
                   onChange={(event) => setSelectedScaleId(event.target.value)}
                 >
@@ -66,7 +68,12 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
                 <button
                   type="button"
                   className={compareButtonClasses}
-                  onClick={() => onToggleCompare?.(selectedScale.id)}
+                  onClick={() => {
+                    // Toggle compare membership then return focus to the select so arrow keys work.
+                    onToggleCompare?.(selectedScale.id);
+                    // Delay focus to allow React state updates / re-renders to settle.
+                    setTimeout(() => selectRef.current?.focus(), 0);
+                  }}
                   title={isSelectedForCompare ? 'Remove from compare' : 'Add to compare'}
                   aria-pressed={isSelectedForCompare}
                 >
