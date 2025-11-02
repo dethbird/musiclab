@@ -18,7 +18,8 @@ body {
   border-radius: 16px;
   padding: 2.5rem 3rem;
   box-shadow: 0 16px 35px rgba(15, 35, 95, 0.12);
-  width: min(720px, 92vw);
+  /* Wider on desktop but still responsive */
+  width: min(980px, 94vw);
   text-align: left;
   display: flex;
   flex-direction: column;

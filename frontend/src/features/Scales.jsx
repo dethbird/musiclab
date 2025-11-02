@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 
 function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare }) {
   const [selectedScaleId, setSelectedScaleId] = useState('');
@@ -14,6 +14,27 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
     ? 'button is-small is-danger scale-compare-btn'
     : 'button is-small is-primary scale-compare-btn';
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const comparedScales = useMemo(() => {
+    if (!selectedToCompare || selectedToCompare.size === 0) return [];
+
+    return Array.from(selectedToCompare)
+      .map((id) => scales.find((s) => s.id === id))
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [selectedToCompare, scales]);
+
+  useEffect(() => {
+    if (!isModalOpen) return undefined;
+
+    const onKey = (e) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        setIsModalOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isModalOpen]);
 
   return (
     <section className="tool-panel">
@@ -41,7 +62,7 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
           {/* Modal showing selected scales for comparison */}
           <div className={`modal ${isModalOpen ? 'is-active' : ''}`} role="dialog" aria-modal={isModalOpen}>
             <div className="modal-background" onClick={() => setIsModalOpen(false)} />
-            <div className="modal-card" style={{ maxWidth: '760px', width: '90%' }}>
+            <div className="modal-card" style={{ maxWidth: '1100px', width: 'min(1100px, 96vw)' }}>
               <header className="modal-card-head">
                 <p className="modal-card-title">Compare scales ({compareCount})</p>
                 <button className="delete" aria-label="close" onClick={() => setIsModalOpen(false)} />
@@ -53,42 +74,52 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
                   </div>
                 )}
 
-                {compareCount > 0 && (
-                  <div className="content">
-                    <div className="box">
-                      {/* Build a list of scales from the selectedToCompare set */}
-                      {Array.from(selectedToCompare).map((scaleId) => {
-                        const scale = scales.find((s) => s.id === scaleId) ?? null;
-                        if (!scale) return null;
+            {compareCount > 0 && (
+              <div className="content">
+                <div className="box">
+                  {/* Render compared scales (sorted alphabetically) */}
+                  {comparedScales.map((scale) => {
+                    const degrees = Array.isArray(scale.degrees) ? scale.degrees : [];
+                    const degreeSet = new Set(degrees);
+                    const maxSemitone = degrees.length === 0 ? 0 : Math.max(...degrees);
 
-                        const degrees = Array.isArray(scale.degrees) ? scale.degrees : [];
-                        const degreeSet = new Set(degrees);
-                        const maxSemitone = degrees.length === 0 ? 0 : Math.max(...degrees);
+                    return (
+                      <div key={scale.id} className="columns is-vcentered is-mobile" style={{ marginBottom: '0.75rem' }}>
+                        <div className="column is-narrow" style={{ flex: '0 0 40%', display: 'flex', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            className="button is-small is-danger is-outlined"
+                            onClick={() => onToggleCompare?.(scale.id)}
+                            title={`Remove ${scale.name} from compare`}
+                            aria-label={`Remove ${scale.name} from compare`}
+                            style={{ marginRight: '0.5rem' }}
+                          >
+                            <span className="icon is-small">
+                              <i className="fa-solid fa-minus" />
+                            </span>
+                          </button>
 
-                        return (
-                          <div key={scale.id} className="columns is-vcentered is-mobile" style={{ marginBottom: '0.75rem' }}>
-                            <div className="column is-narrow" style={{ flex: '0 0 40%' }}>
-                              <strong>{scale.name}</strong> <span className="has-text-grey">({scale.size})</span>
-                            </div>
-                            <div className="column">
-                              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                                {Array.from({ length: maxSemitone + 1 }, (_, value) => {
-                                  const isActive = degreeSet.has(value);
-                                  const tagClass = isActive ? 'tag is-info' : 'tag is-light';
-                                  return (
-                                    <span key={value} className={tagClass} style={{ display: 'inline-block', minWidth: '2.25rem', textAlign: 'center' }}>
-                                      {value}
-                                    </span>
-                                  );
-                                })}
-                              </div>
-                            </div>
+                          <strong>{scale.name}</strong> <span className="has-text-grey" style={{ marginLeft: '0.5rem' }}>({scale.size})</span>
+                        </div>
+                        <div className="column">
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                            {Array.from({ length: maxSemitone + 1 }, (_, value) => {
+                              const isActive = degreeSet.has(value);
+                              const tagClass = isActive ? 'tag is-info' : 'tag is-light';
+                              return (
+                                <span key={value} className={tagClass} style={{ display: 'inline-block', minWidth: '2.5rem', textAlign: 'center' }}>
+                                  {value}
+                                </span>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
               </section>
               <footer className="modal-card-foot" style={{ justifyContent: 'flex-end' }}>
                 <button className="button" onClick={() => setIsModalOpen(false)}>Close</button>
@@ -152,7 +183,7 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
                   aria-pressed={isSelectedForCompare}
                 >
                   <span className="icon">
-                    <i className="fa-solid fa-layer-group" />
+                    <i className="fa-solid fa-code-compare" />
                   </span>
                 </button>
               </div>
