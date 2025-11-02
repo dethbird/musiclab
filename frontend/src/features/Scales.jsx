@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
+import PianoKeyboard from './PianoKeyboard.jsx';
 
 function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare, note = 'C', octave = '4' }) {
   const [selectedScaleId, setSelectedScaleId] = useState(() => {
@@ -43,6 +44,7 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
     ? 'button is-small is-danger scale-compare-btn'
     : 'button is-small is-primary scale-compare-btn';
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const keyboardRef = useRef(null);
   const comparedScales = useMemo(() => {
     if (!selectedToCompare || selectedToCompare.size === 0) return [];
 
@@ -64,6 +66,26 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isModalOpen]);
+
+  // when selected scale, note, or octave changes compute preview MIDIs and center keyboard
+  const scalePreviewMidis = useMemo(() => {
+    if (!selectedScale) return [];
+    const degrees = Array.isArray(selectedScale.degrees) ? selectedScale.degrees : [];
+    const baseIndex = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+    const rootOct = Number.isFinite(Number(octave)) ? Number(Number(octave)) : 0;
+    const rootMidi = (rootOct + 1) * 12 + baseIndex; // C0 = 12 convention
+    return degrees.map(d => rootMidi + d);
+  }, [selectedScale, note, octave]);
+
+  useEffect(() => {
+    if (!selectedScale) return undefined;
+    try {
+      keyboardRef.current?.scrollToMidis(scalePreviewMidis || []);
+    } catch (err) {
+      // ignore
+    }
+    return undefined;
+  }, [selectedScale, note, octave, scalePreviewMidis]);
 
   return (
     <section className="tool-panel">
@@ -161,6 +183,9 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
             </div>
           </div>
 
+          {/* Scale preview modal (single scale -> keyboard) */}
+          
+
       {status === 'loading' && (
         <div className="block has-text-centered">
           <button className="button is-loading is-white" type="button" disabled>
@@ -251,6 +276,10 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
                         </div>
                       );
                     })}
+                  </div>
+                  {/* Inline keyboard preview for the selected scale */}
+                  <div style={{ marginTop: '1rem' }}>
+                    <PianoKeyboard ref={keyboardRef} highlighted={scalePreviewMidis} />
                   </div>
                 </div>
               );
