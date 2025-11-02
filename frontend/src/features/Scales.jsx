@@ -9,6 +9,9 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
 
   const compareCount = selectedToCompare ? selectedToCompare.size : 0;
   const isSelectedForCompare = selectedScale ? selectedToCompare?.has(selectedScale.id) : false;
+  const compareButtonClasses = isSelectedForCompare
+    ? 'button is-small is-danger scale-compare-btn'
+    : 'button is-small is-primary scale-compare-btn';
 
   return (
     <section className="tool-panel">
@@ -57,31 +60,43 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
           </div>
 
           {selectedScale && (
-            <div className="box">
-              <h3 className="title is-5">{selectedScale.name}</h3>
-              <p><strong>ID:</strong> {selectedScale.id}</p>
-              <p><strong>Size:</strong> {selectedScale.size}</p>
-              <div className="block">
+            <div className="box scale-box">
+              <div className="scale-box__header">
+                <h3 className="title is-5">{selectedScale.name}</h3>
                 <button
                   type="button"
-                  className={`button is-small ${isSelectedForCompare ? 'is-warning' : 'is-primary'}`}
+                  className={compareButtonClasses}
                   onClick={() => onToggleCompare?.(selectedScale.id)}
+                  title={isSelectedForCompare ? 'Remove from compare' : 'Add to compare'}
+                  aria-pressed={isSelectedForCompare}
                 >
-                  {isSelectedForCompare ? 'Remove from compare' : 'Add to compare'}
+                  <span className="icon">
+                    <i className="fa-solid fa-layer-group" />
+                  </span>
                 </button>
               </div>
+              <p><strong>ID:</strong> {selectedScale.id}</p>
+              <p><strong>Size:</strong> {selectedScale.size}</p>
               <p className="subtitle is-6">Semitone span</p>
               <div className="tags are-medium">
-                {Array.from({ length: Math.max(...selectedScale.degrees) + 1 }, (_, value) => {
-                  const isActive = selectedScale.degrees.includes(value);
-                  const tagClass = isActive ? 'tag is-info' : 'tag is-light';
+                {(() => {
+                  const degrees = Array.isArray(selectedScale.degrees) ? selectedScale.degrees : [];
+                  if (degrees.length === 0) {
+                    return <span className="tag is-light">—</span>;
+                  }
+                  const degreeSet = new Set(degrees);
+                  const maxSemitone = Math.max(...degrees);
+                  return Array.from({ length: maxSemitone + 1 }, (_, value) => {
+                    const isActive = degreeSet.has(value);
+                    const tagClass = isActive ? 'tag is-info' : 'tag is-light';
 
-                  return (
-                    <span key={value} className={tagClass}>
-                      {value}
-                    </span>
-                  );
-                })}
+                    return (
+                      <span key={value} className={tagClass}>
+                        {value}
+                      </span>
+                    );
+                  });
+                })()}
               </div>
             </div>
           )}

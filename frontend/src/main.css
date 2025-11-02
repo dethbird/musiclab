@@ -54,3 +54,18 @@ body {
   font-size: 1.05rem;
   color: #40506a;
 }
+
+.scale-box {
+  position: relative;
+}
+
+.scale-box__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.scale-compare-btn {
+  border-radius: 999px;
+}
