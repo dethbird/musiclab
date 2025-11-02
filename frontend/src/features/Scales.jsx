@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 
-function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare }) {
+function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare, note = 'C', octave = '4' }) {
   const [selectedScaleId, setSelectedScaleId] = useState(() => {
     try {
       return localStorage.getItem('musiclab:selectedScale') || '';
@@ -25,6 +25,17 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
   const selectedScale = useMemo(() => {
     return scales.find((scale) => scale.id === selectedScaleId) ?? null;
   }, [selectedScaleId, scales]);
+
+  const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const baseNoteIndex = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+
+  const getNoteLabel = (semitone) => {
+    const total = baseNoteIndex + semitone;
+    const name = NOTE_NAMES[total % 12];
+    const octaveOffset = Math.floor(total / 12);
+    const displayOctave = Number.isFinite(Number(octave)) ? String(Number(octave) + octaveOffset) : octave;
+    return `${name}${displayOctave}`;
+  };
 
   const compareCount = selectedToCompare ? selectedToCompare.size : 0;
   const isSelectedForCompare = selectedScale ? selectedToCompare?.has(selectedScale.id) : false;
@@ -125,9 +136,12 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
                               const isActive = degreeSet.has(value);
                               const tagClass = isActive ? 'tag is-info' : 'tag is-light';
                               return (
-                                <span key={value} className={tagClass} style={{ display: 'inline-block', minWidth: '2.5rem', textAlign: 'center' }}>
-                                  {value}
-                                </span>
+                                <div key={value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                  <span className={tagClass} style={{ display: 'inline-block', minWidth: '2.5rem', textAlign: 'center' }}>
+                                    {value}
+                                  </span>
+                                  <span className="is-size-7 has-text-grey" style={{ marginTop: '0.125rem' }}>{getNoteLabel(value)}</span>
+                                </div>
                               );
                             })}
                           </div>
@@ -221,9 +235,10 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
                     const tagClass = isActive ? 'tag is-info' : 'tag is-light';
 
                     return (
-                      <span key={value} className={tagClass}>
-                        {value}
-                      </span>
+                      <div key={value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '0.25rem' }}>
+                        <span className={tagClass} style={{ display: 'inline-block' }}>{value}</span>
+                        <span className="is-size-7 has-text-grey" style={{ marginTop: '0.125rem' }}>{getNoteLabel(value)}</span>
+                      </div>
                     );
                   });
                 })()}

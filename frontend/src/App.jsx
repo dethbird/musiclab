@@ -103,7 +103,7 @@ function App() {
   const activeContent = useMemo(() => {
     const activeTabConfig = TAB_DEFINITIONS.find((tab) => tab.id === activeTab) ?? TAB_DEFINITIONS[0];
 
-    if (activeTabConfig.id === 'scales') {
+      if (activeTabConfig.id === 'scales') {
       return (
         <Scales
           status={scaleState.status}
@@ -121,12 +121,14 @@ function App() {
               return next;
             });
           }}
+          note={note}
+          octave={octave}
         />
       );
     }
 
     return activeTabConfig.element;
-  }, [activeTab, scaleState, scalesToCompare]);
+  }, [activeTab, scaleState, scalesToCompare, note, octave]);
 
   return (
     <main className="app">
