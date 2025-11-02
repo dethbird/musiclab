@@ -16,11 +16,18 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
 
   return (
     <section className="tool-panel">
-      <h2 className="title is-3">Scales</h2>
-
-      <p className="subtitle is-6 has-text-info">
-        Scales to compare: <strong>{compareCount}</strong>
-      </p>
+          <div className="level">
+            <div className="level-left">
+              <h2 className="title is-3">Scales</h2>
+            </div>
+            <div className="level-right">
+              <div className="level-item">
+                <p className="subtitle is-6 has-text-info" style={{ margin: 0 }}>
+                  Scales to compare: <strong>{compareCount}</strong>
+                </p>
+              </div>
+            </div>
+          </div>
 
       {status === 'loading' && (
         <div className="block has-text-centered">
