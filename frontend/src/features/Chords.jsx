@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import PianoKeyboard from './PianoKeyboard.jsx';
 
 // chord types with a small 'symbol' used to show an example for a given root note
 const CHORD_TYPES = [
@@ -33,6 +34,37 @@ function Chords({ note = 'A', octave = '4' }) {
       // ignore
     }
   }, [chordType]);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalVoicing, setModalVoicing] = useState(null);
+
+  // Note name mapping and helper to render note+octave strings from semitone offsets.
+  // Placed at component scope so the modal (outside the voicing IIFE) can access it.
+  const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+
+  function noteOctString(list) {
+    const baseIndex = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+    const rootOct = Number.isFinite(Number(octave)) ? Number(Number(octave)) : 0;
+    return list.map(p => {
+      const total = baseIndex + p;
+      const name = NOTE_NAMES[((total % 12) + 12) % 12];
+      const octaveOffset = Math.floor(total / 12);
+      const displayOct = rootOct + octaveOffset;
+      return `${name}${displayOct}`;
+    }).join('  ');
+  }
+
+  // Close modal on Escape key when open
+  useEffect(() => {
+    if (!isModalOpen) return undefined;
+    function onKey(e) {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        setIsModalOpen(false);
+      }
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isModalOpen]);
 
   return (
     <section className="tool-panel">
@@ -69,6 +101,7 @@ function Chords({ note = 'A', octave = '4' }) {
                 <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.4rem' }}>Voicing</th>
                 <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.4rem' }}>Notes</th>
                 <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.4rem' }}>MIDI</th>
+                <th>&nbsp;</th>
               </tr>
             </thead>
             <tbody>
@@ -140,19 +173,7 @@ function Chords({ note = 'A', octave = '4' }) {
                   return ensureAscending([r, t + 12, f + 12]);
                 }
 
-                const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
-
-                function noteOctString(list) {
-                  const baseIndex = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
-                  const rootOct = Number.isFinite(Number(octave)) ? Number(Number(octave)) : 0;
-                  return list.map(p => {
-                    const total = baseIndex + p;
-                    const name = NOTE_NAMES[((total % 12) + 12) % 12];
-                    const octaveOffset = Math.floor(total / 12);
-                    const displayOct = rootOct + octaveOffset;
-                    return `${name}${displayOct}`;
-                  }).join('  ');
-                }
+                
 
                 function midiArrayFromRootOffsets(rootMidi, list) {
                   return list.map(p => rootMidi + p);
@@ -161,7 +182,7 @@ function Chords({ note = 'A', octave = '4' }) {
                 // compute voicings
                 const formula = chordFormulas[chordType];
                 if (!formula) return (
-                  <tr><td colSpan="3" style={{ padding: '0.4rem', fontStyle: 'italic' }}>Unknown chord type.</td></tr>
+                  <tr><td colSpan="4" style={{ padding: '0.4rem', fontStyle: 'italic' }}>Unknown chord type.</td></tr>
                 );
 
                 const base = formula.degrees;
@@ -189,7 +210,7 @@ function Chords({ note = 'A', octave = '4' }) {
                 if (voicings.length === 0) {
                   return (
                     <tr>
-                      <td colSpan="3" style={{ padding: '0.4rem', fontStyle: 'italic' }}>No voicings available for this chord.</td>
+                      <td colSpan="4" style={{ padding: '0.4rem', fontStyle: 'italic' }}>No voicings available for this chord.</td>
                     </tr>
                   );
                 }
@@ -206,12 +227,50 @@ function Chords({ note = 'A', octave = '4' }) {
                       <td style={{ padding: '0.4rem', borderBottom: '1px solid #e5e5e5' }}>{v.name}</td>
                       <td style={{ padding: '0.4rem', borderBottom: '1px solid #e5e5e5', fontFamily: 'monospace' }}>{noteOctString(v.list)}</td>
                       <td style={{ padding: '0.4rem', borderBottom: '1px solid #e5e5e5', fontFamily: 'monospace' }}>{midis.join(', ')}</td>
+                      <td style={{ padding: '0.4rem', borderBottom: '1px solid #e5e5e5' }}>
+                        <button
+                          type="button"
+                          className="button is-small"
+                          onClick={() => {
+                            // open modal with this voicing
+                            setModalVoicing({ name: v.name, list: v.list, midis });
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          View
+                        </button>
+                      </td>
                     </tr>
                   );
                 });
               })()}
             </tbody>
           </table>
+
+          {/* Voicing modal */}
+          <div className={`modal ${isModalOpen ? 'is-active' : ''}`} role="dialog" aria-modal={isModalOpen}>
+            <div className="modal-background" onClick={() => setIsModalOpen(false)} />
+            <div className="modal-card" style={{ maxWidth: '1100px', width: 'min(1100px, 96vw)' }}>
+              <header className="modal-card-head">
+                <p className="modal-card-title">{modalVoicing ? `${modalVoicing.name}` : 'Voicing'}</p>
+                <button className="delete" aria-label="close" onClick={() => setIsModalOpen(false)} />
+              </header>
+              <section className="modal-card-body">
+                {modalVoicing && (
+                  <div>
+                    <p style={{ marginBottom: '0.5rem' }}><strong>Notes:</strong> <span style={{ fontFamily: 'monospace' }}>{noteOctString(modalVoicing.list)}</span></p>
+                    <p style={{ marginBottom: '0.5rem' }}><strong>MIDI:</strong> <span style={{ fontFamily: 'monospace' }}>{modalVoicing.midis.join(', ')}</span></p>
+                    <div style={{ overflowX: 'auto' }}>
+                      <PianoKeyboard highlighted={modalVoicing.midis} />
+                    </div>
+                  </div>
+                )}
+              </section>
+              <footer className="modal-card-foot" style={{ justifyContent: 'flex-end' }}>
+                <button className="button" onClick={() => setIsModalOpen(false)}>Close</button>
+              </footer>
+            </div>
+          </div>
         </div>
       </div>
     </section>
