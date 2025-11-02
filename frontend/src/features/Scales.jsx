@@ -1,7 +1,25 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 
 function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare }) {
-  const [selectedScaleId, setSelectedScaleId] = useState('');
+  const [selectedScaleId, setSelectedScaleId] = useState(() => {
+    try {
+      return localStorage.getItem('musiclab:selectedScale') || '';
+    } catch (err) {
+      return '';
+    }
+  });
+  // persist selected scale id to localStorage so selection survives reloads
+  useEffect(() => {
+    try {
+      if (selectedScaleId) {
+        localStorage.setItem('musiclab:selectedScale', selectedScaleId);
+      } else {
+        localStorage.removeItem('musiclab:selectedScale');
+      }
+    } catch (err) {
+      // ignore storage errors
+    }
+  }, [selectedScaleId]);
   const selectRef = useRef(null);
 
   const selectedScale = useMemo(() => {

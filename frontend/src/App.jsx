@@ -10,7 +10,25 @@ const TAB_DEFINITIONS = [
 function App() {
   const [activeTab, setActiveTab] = useState(TAB_DEFINITIONS[0].id);
   const [scaleState, setScaleState] = useState({ status: 'idle', data: null, error: null });
-  const [scalesToCompare, setScalesToCompare] = useState(() => new Set());
+  const [scalesToCompare, setScalesToCompare] = useState(() => {
+    try {
+      const raw = localStorage.getItem('musiclab:scalesToCompare');
+      if (!raw) return new Set();
+      const parsed = JSON.parse(raw);
+      return new Set(Array.isArray(parsed) ? parsed : []);
+    } catch (err) {
+      return new Set();
+    }
+  });
+
+  useEffect(() => {
+    try {
+      const arr = Array.from(scalesToCompare);
+      localStorage.setItem('musiclab:scalesToCompare', JSON.stringify(arr));
+    } catch (err) {
+      // ignore storage errors
+    }
+  }, [scalesToCompare]);
 
   useEffect(() => {
     if (scaleState.status !== 'idle') {
