@@ -8,7 +8,21 @@ const TAB_DEFINITIONS = [
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState(TAB_DEFINITIONS[0].id);
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      return localStorage.getItem('musiclab:activeTab') || TAB_DEFINITIONS[0].id;
+    } catch (err) {
+      return TAB_DEFINITIONS[0].id;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('musiclab:activeTab', activeTab);
+    } catch (err) {
+      // ignore storage errors
+    }
+  }, [activeTab]);
   const [scaleState, setScaleState] = useState({ status: 'idle', data: null, error: null });
   const [scalesToCompare, setScalesToCompare] = useState(() => {
     try {
