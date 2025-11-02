@@ -164,24 +164,49 @@ function Pbind() {
 
             {/* Segments */}
             <div style={{ display: 'flex', height: '100%', width: '100%' }}>
-              {timeline.chunks.map((c, idx) => {
-                const widthPct = (timeline.durs[idx] / (timeline.totalBeats || 1)) * 100;
-                const isNote = !c.rest && Number.isFinite(c.pitch);
-                const hue = isNote ? ((Math.round(c.pitch) % 12) * 30) : 0;
-                const bg = isNote ? `hsl(${hue}, 70%, 60%)` : '#dcdcdc';
-                return (
-                  <div
-                    key={idx}
-                    title={isNote ? `note: ${c.pitch}, dur: ${String(c.dur)}` : `rest, dur: ${String(c.dur)}`}
-                    style={{
-                      width: `${widthPct}%`,
-                      height: '100%',
-                      background: bg,
-                      borderRight: '1px solid #fff0',
-                    }}
-                  />
-                );
-              })}
+              {(() => {
+                let noteCount = 0;
+                return timeline.chunks.map((c, idx) => {
+                  const widthPct = (timeline.durs[idx] / (timeline.totalBeats || 1)) * 100;
+                  const isNote = !c.rest && Number.isFinite(c.pitch);
+                  const hue = isNote ? ((Math.round(c.pitch) % 12) * 30) : 0;
+                  const bg = isNote ? `hsl(${hue}, 70%, 60%)` : '#dcdcdc';
+                  const showLabel = isNote && widthPct >= 6;
+                  const label = isNote ? String(++noteCount) : '';
+                  return (
+                    <div
+                      key={idx}
+                      title={isNote ? `note #${noteCount} (pitch ${c.pitch}), dur: ${String(c.dur)}` : `rest, dur: ${String(c.dur)}`}
+                      style={{
+                        position: 'relative',
+                        width: `${widthPct}%`,
+                        height: '100%',
+                        background: bg,
+                        borderRight: '1px solid rgba(255,255,255,0.9)',
+                      }}
+                    >
+                      {showLabel && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            left: '50%',
+                            top: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            fontSize: '10px',
+                            lineHeight: 1,
+                            color: '#fff',
+                            textShadow: '0 1px 2px rgba(0,0,0,0.65)',
+                            pointerEvents: 'none',
+                            userSelect: 'none',
+                          }}
+                        >
+                          {label}
+                        </span>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
         </div>
