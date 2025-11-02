@@ -1,8 +1,39 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 
 function Envelope() {
-  // initial envelope: one starting point at level 0.0, time 0, curve 0
-  const [points, setPoints] = useState([{ level: 0.0, time: 0, curve: 0 }]);
+  // localStorage key for persisting points
+  const STORAGE_KEY = 'musiclab:envelope:points';
+
+  // initial envelope: load from localStorage if present, otherwise one starting point
+  const [points, setPoints] = useState(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // basic validation: ensure entries have level/time/curve
+          const clean = parsed.map((p) => ({
+            level: Number(p.level) || 0,
+            time: Number(p.time) || 0,
+            curve: Number(p.curve) || 0,
+          }));
+          return clean;
+        }
+      }
+    } catch (e) {
+      // ignore parse errors and fall back to default
+    }
+    return [{ level: 0.0, time: 0, curve: 0 }];
+  });
+
+  // persist points to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(points));
+    } catch (e) {
+      // ignore quota errors
+    }
+  }, [points]);
 
   // add a new point (level, time, curve)
   function addPoint(p) {
