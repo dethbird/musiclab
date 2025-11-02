@@ -54,6 +54,9 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [selectedToCompare, scales]);
 
+  // refs for keyboards in the compare modal, keyed by scale id
+  const compareKeyboardRefs = useRef({});
+
   useEffect(() => {
     if (!isModalOpen) return undefined;
 
@@ -66,6 +69,30 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isModalOpen]);
+
+  // When compare modal opens or note/octave change, ask each keyboard to center its highlighted keys
+  useEffect(() => {
+    if (!isModalOpen) return undefined;
+    // small delay to allow keyboard components to mount
+    const t = setTimeout(() => {
+      try {
+        comparedScales.forEach((scale) => {
+          const degrees = Array.isArray(scale.degrees) ? scale.degrees : [];
+          const baseIndex = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+          const rootOct = Number.isFinite(Number(octave)) ? Number(Number(octave)) : 0;
+          const rootMidi = (rootOct + 1) * 12 + baseIndex; // C0 = 12 convention
+          const midis = degrees.map(d => rootMidi + d);
+          const ref = compareKeyboardRefs.current?.[scale.id];
+          if (ref && typeof ref.scrollToMidis === 'function') {
+            try { ref.scrollToMidis(midis); } catch (err) {}
+          }
+        });
+      } catch (err) {
+        // ignore
+      }
+    }, 40);
+    return () => clearTimeout(t);
+  }, [isModalOpen, comparedScales, note, octave]);
 
   // when selected scale, note, or octave changes compute preview MIDIs and center keyboard
   const scalePreviewMidis = useMemo(() => {
@@ -136,6 +163,12 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
                     // Pad semitone display to at least one octave (12 semitones) so rows align
                     const modalWrapAt = Math.max(11, maxSemitone);
 
+                    // compute absolute MIDIs for this scale preview
+                    const baseIndex = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+                    const rootOct = Number.isFinite(Number(octave)) ? Number(Number(octave)) : 0;
+                    const rootMidi = (rootOct + 1) * 12 + baseIndex; // C0 = 12 convention
+                    const scaleMidis = degrees.map(d => rootMidi + d);
+
                     return (
                       <div key={scale.id} className="columns is-vcentered is-mobile" style={{ marginBottom: '0.75rem' }}>
                         <div className="column is-narrow" style={{ flex: '0 0 40%', display: 'flex', alignItems: 'center' }}>
@@ -168,6 +201,10 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
                                 </div>
                               );
                             })}
+                          </div>
+                          {/* inline keyboard preview for this compared scale */}
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <PianoKeyboard ref={(el) => { compareKeyboardRefs.current[scale.id] = el; }} highlighted={scaleMidis} />
                           </div>
                         </div>
                       </div>
