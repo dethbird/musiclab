@@ -1,5 +1,4 @@
 :root {
-  color-scheme: light dark;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.5;
   color: #222;
@@ -29,37 +28,6 @@ body {
 .app__header h1 {
   margin: 0;
   font-size: 2.25rem;
-}
-
-.tab-menu {
-  display: flex;
-  gap: 0.5rem;
-  background: #f3f5fb;
-  padding: 0.4rem;
-  border-radius: 999px;
-}
-
-.tab-menu__item {
-  flex: 1;
-  border: none;
-  background: transparent;
-  color: #40506a;
-  font-size: 1rem;
-  font-weight: 600;
-  padding: 0.65rem 1rem;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.tab-menu__item:hover {
-  background: rgba(255, 255, 255, 0.6);
-}
-
-.tab-menu__item.is-active {
-  background: #ffffff;
-  color: #0f235f;
-  box-shadow: 0 6px 16px rgba(15, 35, 95, 0.15);
 }
 
 .tab-content {

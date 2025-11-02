@@ -20,25 +20,37 @@ function App() {
         <h1>MusicLab</h1>
       </header>
 
-      <nav className="tab-menu" aria-label="Tool selection">
-        {TAB_DEFINITIONS.map((tab) => {
-          const isActive = tab.id === activeTab;
+      <nav className="tabs is-centered is-medium" aria-label="Tool selection">
+        <ul role="tablist">
+          {TAB_DEFINITIONS.map((tab) => {
+            const isActive = tab.id === activeTab;
 
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              className={`tab-menu__item${isActive ? ' is-active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-              aria-pressed={isActive}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
+            return (
+              <li key={tab.id} className={isActive ? 'is-active' : ''} role="presentation">
+                <a
+                  href="#"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={`${tab.id}-panel`}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setActiveTab(tab.id);
+                  }}
+                >
+                  {tab.label}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
-      <section className="tab-content" role="region" aria-live="polite">
+      <section
+        id={`${activeTab}-panel`}
+        className="tab-content"
+        role="region"
+        aria-live="polite"
+      >
         {activeContent}
       </section>
     </main>
