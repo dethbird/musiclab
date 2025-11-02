@@ -10,6 +10,7 @@ const TAB_DEFINITIONS = [
 function App() {
   const [activeTab, setActiveTab] = useState(TAB_DEFINITIONS[0].id);
   const [scaleState, setScaleState] = useState({ status: 'idle', data: null, error: null });
+  const [scalesToCompare, setScalesToCompare] = useState(() => new Set());
 
   useEffect(() => {
     if (scaleState.status !== 'idle') {
@@ -43,12 +44,24 @@ function App() {
           status={scaleState.status}
           scales={Array.isArray(scaleState.data) ? scaleState.data : []}
           error={scaleState.error}
+          selectedToCompare={scalesToCompare}
+          onToggleCompare={(scaleId) => {
+            setScalesToCompare((prev) => {
+              const next = new Set(prev);
+              if (next.has(scaleId)) {
+                next.delete(scaleId);
+              } else {
+                next.add(scaleId);
+              }
+              return next;
+            });
+          }}
         />
       );
     }
 
     return activeTabConfig.element;
-  }, [activeTab, scaleState]);
+  }, [activeTab, scaleState, scalesToCompare]);
 
   return (
     <main className="app">
