@@ -111,6 +111,8 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
                     const degrees = Array.isArray(scale.degrees) ? scale.degrees : [];
                     const degreeSet = new Set(degrees);
                     const maxSemitone = degrees.length === 0 ? 0 : Math.max(...degrees);
+                    // Pad semitone display to at least one octave (12 semitones) so rows align
+                    const modalWrapAt = Math.max(11, maxSemitone);
 
                     return (
                       <div key={scale.id} className="columns is-vcentered is-mobile" style={{ marginBottom: '0.75rem' }}>
@@ -132,7 +134,7 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
                         </div>
                         <div className="column">
                           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                            {Array.from({ length: maxSemitone + 1 }, (_, value) => {
+                            {Array.from({ length: modalWrapAt + 1 }, (_, value) => {
                               const isActive = degreeSet.has(value);
                               const tagClass = isActive ? 'tag is-info' : 'tag is-light';
                               return (
@@ -226,11 +228,19 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
                 {(() => {
                   const degrees = Array.isArray(selectedScale.degrees) ? selectedScale.degrees : [];
                   if (degrees.length === 0) {
-                    return <span className="tag is-light">—</span>;
+                    // show 0..11 padded empty
+                    const degreeSetEmpty = new Set();
+                    return Array.from({ length: 12 }, (_, value) => (
+                      <div key={value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '0.25rem' }}>
+                        <span className="tag is-light" style={{ display: 'inline-block' }}>{value}</span>
+                        <span className="is-size-7 has-text-grey" style={{ marginTop: '0.125rem' }}>{getNoteLabel(value)}</span>
+                      </div>
+                    ));
                   }
                   const degreeSet = new Set(degrees);
                   const maxSemitone = Math.max(...degrees);
-                  return Array.from({ length: maxSemitone + 1 }, (_, value) => {
+                  const wrapAt = Math.max(11, maxSemitone);
+                  return Array.from({ length: wrapAt + 1 }, (_, value) => {
                     const isActive = degreeSet.has(value);
                     const tagClass = isActive ? 'tag is-info' : 'tag is-light';
 
