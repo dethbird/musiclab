@@ -54,12 +54,19 @@ function Scales({ status, scales = [], error }) {
               <h3 className="title is-5">{selectedScale.name}</h3>
               <p><strong>ID:</strong> {selectedScale.id}</p>
               <p><strong>Size:</strong> {selectedScale.size}</p>
-              <p>
-                <strong>Degrees:</strong>{' '}
-                {Array.isArray(selectedScale.degrees) && selectedScale.degrees.length > 0
-                  ? selectedScale.degrees.join(', ')
-                  : '—'}
-              </p>
+              <p className="subtitle is-6">Semitone span</p>
+              <div className="tags are-medium">
+                {Array.from({ length: Math.max(...selectedScale.degrees) + 1 }, (_, value) => {
+                  const isActive = selectedScale.degrees.includes(value);
+                  const tagClass = isActive ? 'tag is-info' : 'tag is-light';
+
+                  return (
+                    <span key={value} className={tagClass}>
+                      {value}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
