@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Scales from './features/Scales.jsx';
 import Chords from './features/Chords.jsx';
 
@@ -9,10 +9,40 @@ const TAB_DEFINITIONS = [
 
 function App() {
   const [activeTab, setActiveTab] = useState(TAB_DEFINITIONS[0].id);
+  const [scaleState, setScaleState] = useState({ status: 'idle', data: null, error: null });
+
+  useEffect(() => {
+    if (scaleState.status !== 'idle') {
+      return;
+    }
+
+    setScaleState({ status: 'loading', data: null, error: null });
+
+    fetch('/api/scales')
+      .then(async (response) => {
+        if (!response.ok) {
+          const message = await response.text();
+          throw new Error(message || `Request failed with status ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((payload) => {
+        setScaleState({ status: 'success', data: payload?.scales ?? [], error: null });
+      })
+      .catch((error) => {
+        setScaleState({ status: 'error', data: null, error: error instanceof Error ? error.message : String(error) });
+      });
+  }, [scaleState.status]);
 
   const activeContent = useMemo(() => {
-    return TAB_DEFINITIONS.find((tab) => tab.id === activeTab)?.element ?? TAB_DEFINITIONS[0].element;
-  }, [activeTab]);
+    const activeTabConfig = TAB_DEFINITIONS.find((tab) => tab.id === activeTab) ?? TAB_DEFINITIONS[0];
+
+    if (activeTabConfig.id === 'scales') {
+      return <Scales status={scaleState.status} scales={scaleState.data} error={scaleState.error} />;
+    }
+
+    return activeTabConfig.element;
+  }, [activeTab, scaleState]);
 
   return (
     <main className="app">
