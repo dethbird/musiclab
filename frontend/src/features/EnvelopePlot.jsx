@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   line,
   curveLinear,
@@ -20,6 +20,8 @@ import {
 function EnvelopePlot({ points = [], width = 420, height = 140, padding = 6 }) {
   // guard
   if (!points || points.length === 0) return null;
+
+  const [hover, setHover] = useState(null);
 
   // compute per-point absolute times (cumulative)
   const segmentDurations = points.slice(1).map((p) => Number(p.time) || 0);
@@ -142,9 +144,50 @@ function EnvelopePlot({ points = [], width = 420, height = 140, padding = 6 }) {
       {/* points */}
       <g>
         {coords.map((c, i) => (
-          <circle key={i} cx={xScale(c.x)} cy={yScale(c.y)} r={3} fill="#3273dc" stroke="#fff" />
+          <circle
+            key={i}
+            cx={xScale(c.x)}
+            cy={yScale(c.y)}
+            r={4}
+            fill="#3273dc"
+            stroke="#fff"
+            onMouseEnter={() => setHover({ i, x: xScale(c.x), y: yScale(c.y) })}
+            onMouseMove={() => setHover({ i, x: xScale(c.x), y: yScale(c.y) })}
+            onMouseLeave={() => setHover(null)}
+          />
         ))}
       </g>
+
+      {/* tooltip */}
+      {hover ? (() => {
+        const i = hover.i;
+        const px = hover.x;
+        const py = hover.y;
+        const pt = points[i] || { level: 0, time: 0, curve: 0 };
+        const lines = [];
+        lines.push(`#${i} level: ${Number(pt.level).toFixed(3)}`);
+        if (i > 0) {
+          lines.push(`time: ${Number(pt.time).toFixed(3)}s`);
+          lines.push(`curve: ${String(pt.curve)}`);
+        }
+        const boxW = 160;
+        const boxH = 16 * lines.length + 8;
+        // position tooltip to the right unless close to right edge
+        const tx = px + 8 > width - boxW ? px - boxW - 8 : px + 8;
+        const ty = Math.max(8, py - boxH / 2);
+        return (
+          <g transform={`translate(${tx},${ty})`} pointerEvents="none">
+            <rect x={0} y={0} width={boxW} height={boxH} rx={6} fill="#ffffff" stroke="#ddd" />
+            <g transform={`translate(8,${12})`} fill="#222" style={{ fontSize: 12 }}>
+              {lines.map((ln, idx) => (
+                <text key={idx} x={0} y={idx * 16}>
+                  {ln}
+                </text>
+              ))}
+            </g>
+          </g>
+        );
+      })() : null}
 
       {/* duration text */}
       <text x={Math.max(padding, 8)} y={height - 6} style={{ fontSize: 11, fill: '#666' }}>
