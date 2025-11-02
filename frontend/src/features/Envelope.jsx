@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 function Envelope() {
   // initial envelope: one starting point at level 0.0, time 0, curve 0
@@ -14,8 +14,20 @@ function Envelope() {
     setPoints((prev) => prev.filter((_, i) => i !== index));
   }
 
+  // curve presets (map to numeric curve values we will export for SC)
+  const CURVE_PRESETS = {
+    hold: -99,
+    linear: 0,
+    exponential: 1,
+    logarithmic: -1,
+    sine: 0.5,
+    squared: 2,
+    cubed: 3,
+    welch: 4,
+  };
+
   // local form state for adding a point
-  const [form, setForm] = useState({ level: 1.0, time: 0.1, curve: 0 });
+  const [form, setForm] = useState({ level: 1.0, time: 0.1, curve: 'linear', customCurve: 0 });
 
   return (
     <section className="tool-panel">
@@ -102,17 +114,32 @@ function Envelope() {
               </div>
             </div>
 
-            <div style={{ flex: '0 0 160px' }}>
+            <div style={{ flex: '0 0 240px' }}>
               <label className="label is-small">Curve</label>
-              <div className="control">
-                <div className="select is-small is-fullwidth">
-                  <select value={String(form.curve)} onChange={(e) => setForm((f) => ({ ...f, curve: Number(e.target.value) }))}>
-                    <option value="0">linear (0)</option>
-                    <option value="1">exponential (1)</option>
-                    <option value="-1">logarithmic (-1)</option>
-                    <option value="-99">hold (-99)</option>
-                  </select>
+              <div className="control" style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ flex: '1 1 auto' }}>
+                  <div className="select is-small is-fullwidth">
+                    <select value={String(form.curve)} onChange={(e) => setForm((f) => ({ ...f, curve: e.target.value }))}>
+                      {Object.keys(CURVE_PRESETS).map((k) => (
+                        <option key={k} value={k}>{k} ({String(CURVE_PRESETS[k])})</option>
+                      ))}
+                      <option value="custom">custom</option>
+                    </select>
+                  </div>
                 </div>
+
+                {form.curve === 'custom' ? (
+                  <div style={{ width: 90 }}>
+                    <input
+                      className="input is-small"
+                      type="number"
+                      step="0.01"
+                      value={String(form.customCurve)}
+                      onChange={(e) => setForm((f) => ({ ...f, customCurve: Number(e.target.value) }))}
+                      title="Enter a numeric curve value for SuperCollider exports"
+                    />
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -120,8 +147,30 @@ function Envelope() {
               <button
                 className="button is-small is-primary"
                 onClick={() => {
+                  // prepare numeric values and validate
+                  const level = Number(form.level);
+                  const time = Number(form.time);
+                  if (!Number.isFinite(level)) {
+                    window.alert('Level must be a number');
+                    return;
+                  }
+                  if (!Number.isFinite(time) || time < 0) {
+                    window.alert('Time must be a non-negative number');
+                    return;
+                  }
+
+                  let curveVal;
+                  if (form.curve === 'custom') {
+                    curveVal = Number(form.customCurve);
+                  } else if (form.curve && Object.prototype.hasOwnProperty.call(CURVE_PRESETS, form.curve)) {
+                    curveVal = CURVE_PRESETS[form.curve];
+                  } else {
+                    curveVal = Number(form.curve);
+                  }
+                  if (!Number.isFinite(curveVal)) curveVal = 0;
+
                   // add form as next point
-                  const p = { level: Number(form.level), time: Number(form.time), curve: Number(form.curve) };
+                  const p = { level, time, curve: curveVal };
                   addPoint(p);
                 }}
               >Add point</button>
@@ -129,7 +178,7 @@ function Envelope() {
           </div>
 
           {/* Existing points list */}
-          <div style={{ marginTop: '1rem' }}>
+                <div style={{ marginTop: '1rem' }}>
             {points.length === 0 ? (
               <p className="has-text-grey">No points yet.</p>
             ) : (
@@ -147,9 +196,15 @@ function Envelope() {
                   {points.map((pt, i) => (
                     <tr key={i}>
                       <td style={{ padding: '0.25rem' }}>{i}</td>
-                      <td style={{ padding: '0.25rem' }}>{String(pt.level)}</td>
-                      <td style={{ padding: '0.25rem' }}>{String(pt.time)}</td>
-                      <td style={{ padding: '0.25rem' }}>{String(pt.curve)}</td>
+                          <td style={{ padding: '0.25rem' }}>{String(pt.level)}</td>
+                          <td style={{ padding: '0.25rem' }}>{String(pt.time)}</td>
+                          <td style={{ padding: '0.25rem' }}>
+                            {/** Show preset name when it matches a known preset value, otherwise show numeric */}
+                            {(() => {
+                              const presetName = Object.keys(CURVE_PRESETS).find((k) => CURVE_PRESETS[k] === pt.curve);
+                              return presetName ? `${presetName} (${String(pt.curve)})` : String(pt.curve);
+                            })()}
+                          </td>
                       <td style={{ padding: '0.25rem' }}>{i === 0 ? null : <button className="button is-small is-danger" onClick={() => removePoint(i)}>Remove</button>}</td>
                     </tr>
                   ))}
@@ -157,6 +212,26 @@ function Envelope() {
               </table>
             )}
           </div>
+
+              {/* Derived arrays for SuperCollider-style export */}
+              <div style={{ marginTop: '1rem' }}>
+                <h4 className="title is-6">Derived arrays (SuperCollider)</h4>
+                <p className="help">These arrays are generated from the points above: levels, times (durations between points), and curves (per-segment).</p>
+                <div style={{ marginTop: '0.5rem', fontFamily: 'monospace', background: '#fafafa', padding: '0.75rem', borderRadius: 6, border: '1px solid #eee' }}>
+                  {(() => {
+                    const levels = points.map((p) => Number(p.level));
+                    const times = points.slice(1).map((p) => Number(p.time));
+                    const curves = points.slice(1).map((p) => Number(p.curve));
+                    return (
+                      <div>
+                        <div><strong>levels</strong> = {JSON.stringify(levels)}</div>
+                        <div><strong>times</strong> = {JSON.stringify(times)}</div>
+                        <div><strong>curves</strong> = {JSON.stringify(curves)}</div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
         </div>
       </div>
     </section>
