@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import PianoKeyboard from './PianoKeyboard.jsx';
 
 // chord types with a small 'symbol' used to show an example for a given root note
@@ -65,6 +65,22 @@ function Chords({ note = 'A', octave = '4' }) {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [isModalOpen]);
+
+  // ref to call imperative methods on the keyboard component
+  const keyboardRef = useRef(null);
+
+  // When the modal opens (or the voicing changes), ask the keyboard to center the highlighted keys.
+  useEffect(() => {
+    if (!isModalOpen || !modalVoicing) return undefined;
+    try {
+      if (keyboardRef.current && typeof keyboardRef.current.scrollToMidis === 'function') {
+        keyboardRef.current.scrollToMidis(modalVoicing.midis || []);
+      }
+    } catch (err) {
+      // ignore
+    }
+    return undefined;
+  }, [isModalOpen, modalVoicing]);
 
   return (
     <section className="tool-panel">
@@ -260,9 +276,7 @@ function Chords({ note = 'A', octave = '4' }) {
                   <div>
                     <p style={{ marginBottom: '0.5rem' }}><strong>Notes:</strong> <span style={{ fontFamily: 'monospace' }}>{noteOctString(modalVoicing.list)}</span></p>
                     <p style={{ marginBottom: '0.5rem' }}><strong>MIDI:</strong> <span style={{ fontFamily: 'monospace' }}>{modalVoicing.midis.join(', ')}</span></p>
-                    <div style={{ overflowX: 'auto' }}>
-                      <PianoKeyboard highlighted={modalVoicing.midis} />
-                    </div>
+                      <PianoKeyboard ref={keyboardRef} highlighted={modalVoicing.midis} />
                   </div>
                 )}
               </section>
