@@ -150,9 +150,9 @@ function App() {
           <div className="level-item">
             <div className="field is-grouped is-grouped-multiline" style={{ alignItems: 'center' }}>
               <div className="control" style={{ display: 'flex', flexDirection: 'column', marginRight: '0.5rem' }}>
-                <label htmlFor="note-select" className="label is-small" style={{ marginBottom: '0.25rem' }}>Note</label>
-                <div className="select is-small">
-                  <select id="note-select" value={note} aria-label="Note name" onChange={(e) => setNote(e.target.value)}>
+                <label htmlFor="note-select" className="label is-medium" style={{ marginBottom: '0.25rem', fontSize: '1.05rem' }}>Note</label>
+                <div className="select is-medium">
+                  <select id="note-select" value={note} aria-label="Note name" onChange={(e) => setNote(e.target.value)} style={{ fontSize: '1rem' }}>
                       <option value="C">C</option>
                       <option value="C#">C#</option>
                       <option value="D">D</option>
@@ -169,9 +169,9 @@ function App() {
                 </div>
               </div>
               <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
-                <label htmlFor="octave-select" className="label is-small" style={{ marginBottom: '0.25rem' }}>Octave</label>
-                <div className="select is-small">
-                  <select id="octave-select" value={octave} aria-label="Octave" onChange={(e) => setOctave(e.target.value)}>
+                <label htmlFor="octave-select" className="label is-medium" style={{ marginBottom: '0.25rem', fontSize: '1.05rem' }}>Octave</label>
+                <div className="select is-medium">
+                  <select id="octave-select" value={octave} aria-label="Octave" onChange={(e) => setOctave(e.target.value)} style={{ fontSize: '1rem' }}>
                     <option value="0">0</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
