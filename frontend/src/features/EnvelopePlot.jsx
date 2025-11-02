@@ -60,15 +60,60 @@ function EnvelopePlot({ points = [], width = 420, height = 140, padding = 12 }) 
     return curveNatural;
   };
 
-  // Render each segment separately using its curve
-  const segmentPaths = [];
-  for (let i = 0; i < coords.length - 1; i++) {
-    const segCoords = [coords[i], coords[i + 1]];
-    const segCurve = chooseCurveForValue(Number(points[i + 1]?.curve));
-    const gen = line().x((d) => xScale(d.x)).y((d) => yScale(d.y)).curve(segCurve);
-    const pd = gen(segCoords) || '';
-    segmentPaths.push(pd);
+  // Sample each segment according to its curve value and build a sampled coords array
+  function sampleSegment(a, b, cv, samples = 32) {
+    const sx = a.x;
+    const ex = b.x;
+    const duration = ex - sx;
+    const sy = a.y;
+    const ey = b.y;
+
+    // easing function derived from curve value
+    const eased = (t) => {
+      if (!Number.isFinite(cv)) return t;
+      if (cv === -99) return 0; // hold: keep start level until the end
+      if (cv === 0) return t; // linear
+      if (cv > 0) {
+        // convex/exponential-like: use an inverse exponent to give more curvature with larger cv
+        return Math.pow(t, 1 / (1 + cv));
+      }
+      // cv < 0 : concave / logarithmic-like
+      const abs = Math.abs(cv);
+      return 1 - Math.pow(1 - t, 1 / (1 + abs));
+    };
+
+    const pts = [];
+    const n = Math.max(3, samples);
+    for (let i = 0; i < n; i++) {
+      const tt = i / (n - 1);
+      let vv;
+      if (cv === -99) {
+        // hold: all intermediate samples stay at start level; last sample is the end
+        vv = i === n - 1 ? ey : sy;
+      } else {
+        const u = eased(tt);
+        vv = sy + u * (ey - sy);
+      }
+      const xx = sx + tt * duration;
+      pts.push({ x: xx, y: vv });
+    }
+    return pts;
   }
+
+  const sampled = [];
+  for (let i = 0; i < coords.length - 1; i++) {
+    const a = coords[i];
+    const b = coords[i + 1];
+    const cv = Number(points[i + 1]?.curve);
+    const segSamples = sampleSegment(a, b, cv, 32);
+    // avoid duplicating the first sample of following segments
+    if (i === 0) sampled.push(...segSamples);
+    else sampled.push(...segSamples.slice(1));
+  }
+
+  // generate a single path from sampled points (linear between samples approximates the SC curve)
+  const pathGen = line().x((d) => xScale(d.x)).y((d) => yScale(d.y)).curve(curveLinear);
+  const d = pathGen(sampled) || '';
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-label="Envelope plot">
@@ -79,12 +124,8 @@ function EnvelopePlot({ points = [], width = 420, height = 140, padding = 12 }) 
         <line x1={padding} x2={width - padding} y1={yScale(1)} y2={yScale(1)} />
       </g>
 
-      {/* per-segment paths */}
-      <g>
-        {segmentPaths.map((pd, i) => (
-          <path key={i} d={pd} fill="none" stroke="#3273dc" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-        ))}
-      </g>
+      {/* sampled path approximating per-segment SC curves */}
+      <path d={d} fill="none" stroke="#3273dc" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
 
       {/* points */}
       <g>
