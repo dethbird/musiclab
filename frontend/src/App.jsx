@@ -127,6 +127,10 @@ function App() {
       );
     }
 
+      if (activeTabConfig.id === 'chords') {
+        return <Chords note={note} />;
+      }
+
     return activeTabConfig.element;
   }, [activeTab, scaleState, scalesToCompare, note, octave]);
 
