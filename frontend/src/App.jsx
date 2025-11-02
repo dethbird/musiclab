@@ -38,7 +38,13 @@ function App() {
     const activeTabConfig = TAB_DEFINITIONS.find((tab) => tab.id === activeTab) ?? TAB_DEFINITIONS[0];
 
     if (activeTabConfig.id === 'scales') {
-      return <Scales status={scaleState.status} scales={scaleState.data} error={scaleState.error} />;
+      return (
+        <Scales
+          status={scaleState.status}
+          scales={Array.isArray(scaleState.data) ? scaleState.data : []}
+          error={scaleState.error}
+        />
+      );
     }
 
     return activeTabConfig.element;

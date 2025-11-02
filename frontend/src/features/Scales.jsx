@@ -1,23 +1,73 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 
-function Scales({ status, scales, error }) {
+function Scales({ status, scales = [], error }) {
+  const [selectedScaleId, setSelectedScaleId] = useState('');
+
+  const selectedScale = useMemo(() => {
+    return scales.find((scale) => scale.id === selectedScaleId) ?? null;
+  }, [selectedScaleId, scales]);
+
   return (
     <section className="tool-panel">
-      <h2>Scales</h2>
+      <h2 className="title is-3">Scales</h2>
 
-      {status === 'loading' && <p>Loading scale catalog…</p>}
+      {status === 'loading' && (
+        <div className="block has-text-centered">
+          <button className="button is-loading is-white" type="button" disabled>
+            Loading scale catalog…
+          </button>
+        </div>
+      )}
 
       {status === 'error' && (
-        <p role="alert" className="has-text-danger">
-          Unable to load scales: {error}
-        </p>
+        <article className="message is-danger" role="alert">
+          <div className="message-body">Unable to load scales: {error}</div>
+        </article>
       )}
 
       {status === 'success' && (
-        <p>Loaded {scales.length} scales from the catalog.</p>
+        <div className="content">
+          <div className="field">
+            <label className="label" htmlFor="scale-select">
+              Select a scale
+            </label>
+            <div className="control">
+              <div className="select is-fullwidth">
+                <select
+                  id="scale-select"
+                  value={selectedScaleId}
+                  onChange={(event) => setSelectedScaleId(event.target.value)}
+                >
+                  <option value="">— choose —</option>
+                  {scales.map((scale) => (
+                    <option key={scale.id} value={scale.id}>
+                      {scale.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {selectedScale && (
+            <div className="box">
+              <h3 className="title is-5">{selectedScale.name}</h3>
+              <p><strong>ID:</strong> {selectedScale.id}</p>
+              <p><strong>Size:</strong> {selectedScale.size}</p>
+              <p>
+                <strong>Degrees:</strong>{' '}
+                {Array.isArray(selectedScale.degrees) && selectedScale.degrees.length > 0
+                  ? selectedScale.degrees.join(', ')
+                  : '—'}
+              </p>
+            </div>
+          )}
+        </div>
       )}
 
-      {status === 'idle' && <p>Preparing to load scales…</p>}
+      {status === 'idle' && (
+        <p className="has-text-grey">Preparing to load scales…</p>
+      )}
     </section>
   );
 }
