@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import EnvelopePlot from './EnvelopePlot';
 
 function Envelope() {
   // localStorage key for persisting points
@@ -94,12 +95,12 @@ function Envelope() {
       </div>
 
       <div className="content">
-        {/* Curve plotting area (stub) */}
+        {/* Curve plotting area */}
         <div className="box" style={{ minHeight: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ textAlign: 'center', color: '#7a7a7a' }}>
             <div style={{ fontSize: 14, marginBottom: 8 }}>Envelope curve preview</div>
-            <div style={{ width: 420, height: 140, border: '2px dashed #dbdbdb', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
-              <span className="has-text-grey">(curve plot will be rendered here)</span>
+            <div style={{ width: 420, height: 140, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
+              <EnvelopePlot points={points} width={420} height={140} />
             </div>
           </div>
         </div>
