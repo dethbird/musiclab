@@ -27,7 +27,11 @@ function App() {
   // Note and octave selection persisted in localStorage
   const [note, setNote] = useState(() => {
     try {
-      return localStorage.getItem('musiclab:note') || 'C';
+      const raw = localStorage.getItem('musiclab:note') || 'C';
+      // normalize legacy sharps to flats (A# -> B♭, D# -> E♭)
+      if (raw === 'A#') return 'B♭';
+      if (raw === 'D#') return 'E♭';
+      return raw;
     } catch (err) {
       return 'C';
     }
@@ -128,7 +132,7 @@ function App() {
     }
 
       if (activeTabConfig.id === 'chords') {
-        return <Chords note={note} />;
+        return <Chords note={note} octave={octave} />;
       }
 
     return activeTabConfig.element;
@@ -147,19 +151,19 @@ function App() {
                 <label htmlFor="note-select" className="label is-small" style={{ marginBottom: '0.25rem' }}>Note</label>
                 <div className="select is-small">
                   <select id="note-select" value={note} aria-label="Note name" onChange={(e) => setNote(e.target.value)}>
-                    <option value="C">C</option>
-                    <option value="C#">C#</option>
-                    <option value="D">D</option>
-                    <option value="D#">D#</option>
-                    <option value="E">E</option>
-                    <option value="F">F</option>
-                    <option value="F#">F#</option>
-                    <option value="G">G</option>
-                    <option value="G#">G#</option>
-                    <option value="A">A</option>
-                    <option value="A#">A#</option>
-                    <option value="B">B</option>
-                  </select>
+                      <option value="C">C</option>
+                      <option value="C#">C#</option>
+                      <option value="D">D</option>
+                      <option value="E♭">E♭</option>
+                      <option value="E">E</option>
+                      <option value="F">F</option>
+                      <option value="F#">F#</option>
+                      <option value="G">G</option>
+                      <option value="G#">G#</option>
+                      <option value="A">A</option>
+                      <option value="B♭">B♭</option>
+                      <option value="B">B</option>
+                    </select>
                 </div>
               </div>
               <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>

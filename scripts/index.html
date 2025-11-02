@@ -429,7 +429,7 @@
     };
 
     // helpers
-    const NOTE_LABELS = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const NOTE_LABELS = ["C","C#","D","E♭","E","F","F#","G","G#","A","B♭","B"];
     function noteLabelFromSemitone(v){ const i = (parseInt(v,10) % 12 + 12) % 12; return NOTE_LABELS[i]; }
     function ensureAscending(arr){ const out=[]; let prev=-Infinity; for (let x of arr){ let v=x; while (v<=prev) v+=12; out.push(v); prev=v; } return out; }
     function normalizeNonNegative(arr){ let a=arr.slice(); while (Math.min(...a)<0) a=a.map(x=>x+12); return a; }

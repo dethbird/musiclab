@@ -26,7 +26,7 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
     return scales.find((scale) => scale.id === selectedScaleId) ?? null;
   }, [selectedScaleId, scales]);
 
-  const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
   const baseNoteIndex = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
 
   const getNoteLabel = (semitone) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 // chord types with a small 'symbol' used to show an example for a given root note
 const CHORD_TYPES = [
@@ -16,7 +16,7 @@ const CHORD_TYPES = [
   { value: 'aug', name: 'Augmented', symbol: '+' }
 ];
 
-function Chords({ note = 'A' }) {
+function Chords({ note = 'A', octave = '4' }) {
   const [chordType, setChordType] = useState(() => {
     try {
       return localStorage.getItem('musiclab:chordType') || 'maj';
@@ -60,7 +60,159 @@ function Chords({ note = 'A' }) {
           </div>
         </div>
 
-        <p>Chord voicings laboratory coming soon.</p>
+        <div>
+          {/* chord header removed (not needed) */}
+
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.25rem' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.4rem' }}>Voicing</th>
+                <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.4rem' }}>Notes</th>
+                <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.4rem' }}>MIDI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(() => {
+                // Helpers ported from original index.html
+                const chordFormulas = {
+                  maj:   { name: 'Major',        symbol: '',     degrees: [0, 4, 7] },
+                  min:   { name: 'Minor',        symbol: 'm',    degrees: [0, 3, 7] },
+                  dom7:  { name: 'Dominant 7',   symbol: '7',    degrees: [0, 4, 7, 10] },
+                  min7:  { name: 'Minor 7',      symbol: 'm7',   degrees: [0, 3, 7, 10] },
+                  maj7:  { name: 'Major 7',      symbol: 'maj7', degrees: [0, 4, 7, 11] },
+                  sus4:  { name: 'Sus4',         symbol: 'sus4', degrees: [0, 5, 7] },
+                  sus2:  { name: 'Sus2',         symbol: 'sus2', degrees: [0, 2, 7] },
+                  add9:  { name: 'Add9',         symbol: 'add9', degrees: [0, 4, 7, 14] },
+                  sixth: { name: '6',            symbol: '6',    degrees: [0, 4, 7, 9] },
+                  min6:  { name: 'Minor 6',      symbol: 'm6',   degrees: [0, 3, 7, 9] },
+                  dim:   { name: 'Diminished',   symbol: 'dim',  degrees: [0, 3, 6] },
+                  aug:   { name: 'Augmented',    symbol: '+',    degrees: [0, 4, 8] }
+                };
+
+                function ensureAscending(arr) {
+                  const out = [];
+                  let prev = -Infinity;
+                  for (let x of arr) {
+                    let v = x;
+                    while (v <= prev) v += 12;
+                    out.push(v);
+                    prev = v;
+                  }
+                  return out;
+                }
+
+                function normalizeNonNegative(arr) {
+                  let a = arr.slice();
+                  while (Math.min(...a) < 0) a = a.map(x => x + 12);
+                  return a;
+                }
+
+                function inversion(deg, k) {
+                  const b = deg.slice().sort((a, b) => a - b);
+                  const front = b.slice(k);
+                  const back = b.slice(0, k).map(x => x + 12);
+                  return ensureAscending(front.concat(back));
+                }
+
+                function drop2(deg) {
+                  const c = ensureAscending(deg.slice().sort((a, b) => a - b));
+                  if (c.length < 4) return null;
+                  const i = c.length - 2;
+                  return normalizeNonNegative(ensureAscending([c[i] - 12, ...c.filter((_, j) => j !== i)]));
+                }
+
+                function drop3(deg) {
+                  const c = ensureAscending(deg.slice().sort((a, b) => a - b));
+                  if (c.length < 4) return null;
+                  const i = c.length - 3;
+                  return normalizeNonNegative(ensureAscending([c[i] - 12, ...c.filter((_, j) => j !== i)]));
+                }
+
+                function spreadTriad(deg) {
+                  if (deg.length !== 3) return null;
+                  const [r, t, f] = deg.slice().sort((a, b) => a - b);
+                  return ensureAscending([r, f, t + 12]);
+                }
+
+                function openTriad(deg) {
+                  if (deg.length !== 3) return null;
+                  const [r, t, f] = deg.slice().sort((a, b) => a - b);
+                  return ensureAscending([r, t + 12, f + 12]);
+                }
+
+                const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+
+                function noteOctString(list) {
+                  const baseIndex = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+                  const rootOct = Number.isFinite(Number(octave)) ? Number(Number(octave)) : 0;
+                  return list.map(p => {
+                    const total = baseIndex + p;
+                    const name = NOTE_NAMES[((total % 12) + 12) % 12];
+                    const octaveOffset = Math.floor(total / 12);
+                    const displayOct = rootOct + octaveOffset;
+                    return `${name}${displayOct}`;
+                  }).join('  ');
+                }
+
+                function midiArrayFromRootOffsets(rootMidi, list) {
+                  return list.map(p => rootMidi + p);
+                }
+
+                // compute voicings
+                const formula = chordFormulas[chordType];
+                if (!formula) return (
+                  <tr><td colSpan="3" style={{ padding: '0.4rem', fontStyle: 'italic' }}>Unknown chord type.</td></tr>
+                );
+
+                const base = formula.degrees;
+                const close = [
+                  { name: 'Close (Root)', list: ensureAscending(base.slice().sort((a, b) => a - b)) },
+                  { name: 'Close (1st inv)', list: (base.length > 2 ? inversion(base, 1) : null) },
+                  { name: 'Close (2nd inv)', list: (base.length > 2 ? inversion(base, 2) : null) },
+                  { name: 'Close (3rd inv)', list: (base.length > 3 ? inversion(base, 3) : null) }
+                ].filter(v => v.list);
+
+                const drops = [
+                  { name: 'Drop-2 (root position)', list: drop2(base) },
+                  { name: 'Drop-3 (root position)', list: drop3(base) }
+                ].filter(v => v.list);
+
+                const spreads = (base.length === 3)
+                  ? [
+                      { name: 'Spread Triad (R–5–10)', list: spreadTriad(base) },
+                      { name: 'Open Triad (R–10–14)', list: openTriad(base) }
+                    ].filter(v => v.list)
+                  : [];
+
+                const voicings = [...close, ...drops, ...spreads];
+
+                if (voicings.length === 0) {
+                  return (
+                    <tr>
+                      <td colSpan="3" style={{ padding: '0.4rem', fontStyle: 'italic' }}>No voicings available for this chord.</td>
+                    </tr>
+                  );
+                }
+
+                // compute root MIDI so we can show absolute MIDI numbers
+                const baseIndex = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+                const rootOct = Number.isFinite(Number(octave)) ? Number(Number(octave)) : 0;
+                const rootMidi = (rootOct + 1) * 12 + baseIndex; // C0 = 12 convention
+
+                return voicings.map((v, idx) => {
+                  const midis = midiArrayFromRootOffsets(rootMidi, v.list);
+                  return (
+                    <tr key={`${v.name}-${idx}`}>
+                      <td style={{ padding: '0.4rem', borderBottom: '1px solid #e5e5e5' }}>{v.name}</td>
+                      <td style={{ padding: '0.4rem', borderBottom: '1px solid #e5e5e5', fontFamily: 'monospace' }}>{noteOctString(v.list)}</td>
+                      <td style={{ padding: '0.4rem', borderBottom: '1px solid #e5e5e5', fontFamily: 'monospace' }}>{midis.join(', ')}</td>
+                    </tr>
+                  );
+                });
+              })()}
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   );
