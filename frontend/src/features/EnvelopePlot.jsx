@@ -1,5 +1,13 @@
 import React from 'react';
-import { line, curveLinear, curveStepBefore, curveBasis } from 'd3-shape';
+import {
+  line,
+  curveLinear,
+  curveStepBefore,
+  curveBasis,
+  curveCardinal,
+  curveMonotoneX,
+  curveNatural,
+} from 'd3-shape';
 
 // A small, self-contained SVG plot for the envelope points.
 // Input: points = [{level, time, curve}, ...]
@@ -38,25 +46,29 @@ function EnvelopePlot({ points = [], width = 420, height = 140, padding = 12 }) 
   // prepare coords
   const coords = points.map((p, i) => ({ x: cum[i], y: Number(p.level) || 0 }));
 
-  // choose a curve interpolator. Right now we use a simple mapping; this is a place
-  // to experiment with mapping SuperCollider curve numbers to d3 curves.
-  const chooseCurve = () => {
-    // try to inspect the first non-zero curve value on segments
-    const firstSeg = points[1];
-    if (!firstSeg) return curveLinear;
-    const cv = Number(firstSeg.curve);
-    // mapping (heuristic): hold -> stepBefore (-99), linear -> 0, others -> basis
+  // choose a d3 curve interpolator for a given numeric curve value
+  const chooseCurveForValue = (cv) => {
+    // map some common SuperCollider-like curve numbers to d3 curves
+    // -99 => hold/step; 0 => linear; small fractional values => cardinal/monotone
+    if (!Number.isFinite(cv)) return curveLinear;
     if (cv === -99) return curveStepBefore;
     if (cv === 0) return curveLinear;
-    return curveBasis;
+    if (cv === 0.5) return curveCardinal;
+    if (cv === 1) return curveMonotoneX;
+    if (cv === 2 || cv === 3) return curveBasis;
+    // fallback
+    return curveNatural;
   };
 
-  const pathGen = line()
-    .x((d) => xScale(d.x))
-    .y((d) => yScale(d.y))
-    .curve(chooseCurve());
-
-  const d = pathGen(coords) || '';
+  // Render each segment separately using its curve
+  const segmentPaths = [];
+  for (let i = 0; i < coords.length - 1; i++) {
+    const segCoords = [coords[i], coords[i + 1]];
+    const segCurve = chooseCurveForValue(Number(points[i + 1]?.curve));
+    const gen = line().x((d) => xScale(d.x)).y((d) => yScale(d.y)).curve(segCurve);
+    const pd = gen(segCoords) || '';
+    segmentPaths.push(pd);
+  }
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-label="Envelope plot">
@@ -67,8 +79,12 @@ function EnvelopePlot({ points = [], width = 420, height = 140, padding = 12 }) 
         <line x1={padding} x2={width - padding} y1={yScale(1)} y2={yScale(1)} />
       </g>
 
-      {/* path */}
-      <path d={d} fill="none" stroke="#3273dc" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      {/* per-segment paths */}
+      <g>
+        {segmentPaths.map((pd, i) => (
+          <path key={i} d={pd} fill="none" stroke="#3273dc" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        ))}
+      </g>
 
       {/* points */}
       <g>
