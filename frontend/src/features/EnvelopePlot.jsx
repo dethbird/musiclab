@@ -17,7 +17,7 @@ import {
 // - For now we map a few curve types to d3 curve functions. We'll iterate on how
 //   SuperCollider `curves[]` maps to d3 curve interpolators later.
 
-function EnvelopePlot({ points = [], width = 420, height = 140, padding = 12 }) {
+function EnvelopePlot({ points = [], width = 420, height = 140, padding = 6 }) {
   // guard
   if (!points || points.length === 0) return null;
 
@@ -61,7 +61,7 @@ function EnvelopePlot({ points = [], width = 420, height = 140, padding = 12 }) 
   };
 
   // Sample each segment according to its curve value and build a sampled coords array
-  function sampleSegment(a, b, cv, samples = 32) {
+  function sampleSegment(a, b, cv, samples) {
     const sx = a.x;
     const ex = b.x;
     const duration = ex - sx;
@@ -82,14 +82,26 @@ function EnvelopePlot({ points = [], width = 420, height = 140, padding = 12 }) 
       return 1 - Math.pow(1 - t, 1 / (1 + abs));
     };
 
+    // If samples not provided, choose adaptively based on pixel length and curvature
+    let n = samples || 32;
+    try {
+      // estimate pixel length using xScale (guard in case xScale depends on external values)
+      const pxLen = Math.abs(xScale(ex) - xScale(sx));
+      // base density: ~0.5 samples per pixel, plus more for higher curve magnitudes
+      const extra = Math.min(160, Math.round(Math.abs(cv || 0) * 24));
+      n = Math.max(4, Math.min(400, Math.round(pxLen * 0.6) + extra));
+    } catch (e) {
+      n = samples || 32;
+    }
+
     const pts = [];
-    const n = Math.max(3, samples);
+    const nClamped = Math.max(3, n);
     for (let i = 0; i < n; i++) {
-      const tt = i / (n - 1);
+      const tt = i / (nClamped - 1);
       let vv;
       if (cv === -99) {
         // hold: all intermediate samples stay at start level; last sample is the end
-        vv = i === n - 1 ? ey : sy;
+        vv = i === nClamped - 1 ? ey : sy;
       } else {
         const u = eased(tt);
         vv = sy + u * (ey - sy);
@@ -135,7 +147,7 @@ function EnvelopePlot({ points = [], width = 420, height = 140, padding = 12 }) 
       </g>
 
       {/* duration text */}
-      <text x={padding} y={height - 6} style={{ fontSize: 11, fill: '#666' }}>
+      <text x={Math.max(padding, 8)} y={height - 6} style={{ fontSize: 11, fill: '#666' }}>
         {`duration: ${total.toFixed(3)}s`}
       </text>
     </svg>

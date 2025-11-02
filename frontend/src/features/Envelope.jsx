@@ -99,8 +99,8 @@ function Envelope() {
         <div className="box" style={{ minHeight: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ textAlign: 'center', color: '#7a7a7a' }}>
             <div style={{ fontSize: 14, marginBottom: 8 }}>Envelope curve preview</div>
-            <div style={{ width: 420, height: 140, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
-              <EnvelopePlot points={points} width={420} height={140} />
+              <div style={{ width: 520, height: 180, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
+              <EnvelopePlot points={points} width={520} height={180} />
             </div>
           </div>
         </div>
