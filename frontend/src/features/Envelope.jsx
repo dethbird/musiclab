@@ -222,10 +222,15 @@ function Envelope() {
                     const levels = points.map((p) => Number(p.level));
                     const times = points.slice(1).map((p) => Number(p.time));
                     const curves = points.slice(1).map((p) => Number(p.curve));
+                    const total = times.reduce((acc, v) => acc + (Number.isFinite(v) ? v : 0), 0);
+                    const totalDisplay = Number(total.toFixed(3));
                     return (
                       <div>
                         <div><strong>levels</strong> = {JSON.stringify(levels)}</div>
-                        <div><strong>times</strong> = {JSON.stringify(times)}</div>
+                        <div>
+                          <strong>times</strong> = {JSON.stringify(times)}{' '}
+                          <span style={{ color: '#7a7a7a' }}>// {totalDisplay}s total</span>
+                        </div>
                         <div><strong>curves</strong> = {JSON.stringify(curves)}</div>
                       </div>
                     );
