@@ -187,7 +187,7 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
 
                           <strong>{scale.name}</strong> <span className="has-text-grey" style={{ marginLeft: '0.5rem' }}>({scale.size})</span>
                         </div>
-                        <div className="column">
+                        <div className="column" style={{ overflowX: 'hidden' }}>
                           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
                             {Array.from({ length: modalWrapAt + 1 }, (_, value) => {
                               const isActive = degreeSet.has(value);
@@ -204,7 +204,11 @@ function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare
                           </div>
                           {/* inline keyboard preview for this compared scale */}
                           <div style={{ marginTop: '0.5rem' }}>
-                            <PianoKeyboard ref={(el) => { compareKeyboardRefs.current[scale.id] = el; }} highlighted={scaleMidis} />
+                            <PianoKeyboard
+                              ref={(el) => { compareKeyboardRefs.current[scale.id] = el; }}
+                              highlighted={scaleMidis}
+                              hideScrollbar
+                            />
                           </div>
                         </div>
                       </div>

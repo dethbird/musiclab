@@ -3,7 +3,7 @@ import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 // Render an 88-key piano (MIDI 21..108) and highlight any MIDI numbers in `highlighted`.
 // This component now contains its own horizontal scroll wrapper and exposes an
 // imperative `scrollToMidis(midis: number[])` method so parents can center keys.
-const PianoKeyboard = forwardRef(function PianoKeyboard({ highlighted = [], startMidi = 21, endMidi = 108 }, ref) {
+const PianoKeyboard = forwardRef(function PianoKeyboard({ highlighted = [], startMidi = 21, endMidi = 108, hideScrollbar = false }, ref) {
   const sharps = new Set([1, 3, 6, 8, 10]);
   const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -80,7 +80,7 @@ const PianoKeyboard = forwardRef(function PianoKeyboard({ highlighted = [], star
   }));
 
   return (
-    <div style={{ overflowX: 'auto' }} ref={wrapperRef} aria-hidden={false}>
+    <div style={{ overflowX: hideScrollbar ? 'hidden' : 'auto', width: '100%' }} ref={wrapperRef} aria-hidden={false}>
       <div style={containerStyle}>
         {/* white keys */}
         <div style={{ display: 'flex' }}>
