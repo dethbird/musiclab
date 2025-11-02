@@ -14,6 +14,31 @@ function Envelope() {
     setPoints((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function movePointUp(index) {
+    // do not allow moving into index 0 (start point must remain first)
+    if (index <= 1) return;
+    setPoints((prev) => {
+      const copy = prev.slice();
+      const j = index - 1;
+      const tmp = copy[j];
+      copy[j] = copy[index];
+      copy[index] = tmp;
+      return copy;
+    });
+  }
+
+  function movePointDown(index) {
+    setPoints((prev) => {
+      if (index >= prev.length - 1) return prev;
+      const copy = prev.slice();
+      const j = index + 1;
+      const tmp = copy[j];
+      copy[j] = copy[index];
+      copy[index] = tmp;
+      return copy;
+    });
+  }
+
   // curve presets (map to numeric curve values we will export for SC)
   const CURVE_PRESETS = {
     hold: -99,
@@ -205,7 +230,49 @@ function Envelope() {
                               return presetName ? `${presetName} (${String(pt.curve)})` : String(pt.curve);
                             })()}
                           </td>
-                      <td style={{ padding: '0.25rem' }}>{i === 0 ? null : <button className="button is-small is-danger" onClick={() => removePoint(i)}>Remove</button>}</td>
+                      <td style={{ padding: '0.25rem' }}>{i === 0 ? null : (
+                        <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                          {/* Up / Down icons for reordering (UI-only) */}
+                          <button
+                            className="button is-small"
+                            aria-label={`Move point ${i} up`}
+                            title="Move up"
+                            type="button"
+                            onClick={() => movePointUp(i)}
+                            disabled={i <= 1}
+                          >
+                            <span className="icon is-small">
+                              <i className="fas fa-arrow-up" aria-hidden="true"></i>
+                            </span>
+                          </button>
+
+                          <button
+                            className="button is-small"
+                            aria-label={`Move point ${i} down`}
+                            title="Move down"
+                            type="button"
+                            onClick={() => movePointDown(i)}
+                            disabled={i === points.length - 1}
+                          >
+                            <span className="icon is-small">
+                              <i className="fas fa-arrow-down" aria-hidden="true"></i>
+                            </span>
+                          </button>
+
+                          {/* Remove (trash) */}
+                          <button
+                            className="button is-small is-danger"
+                            onClick={() => removePoint(i)}
+                            aria-label={`Remove point ${i}`}
+                            title="Remove point"
+                            type="button"
+                          >
+                            <span className="icon is-small">
+                              <i className="fas fa-trash-alt" aria-hidden="true"></i>
+                            </span>
+                          </button>
+                        </div>
+                      )}</td>
                     </tr>
                   ))}
                 </tbody>
