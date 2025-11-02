@@ -16,19 +16,73 @@ body {
 
 .app {
   background: #ffffff;
-  border-radius: 12px;
-  padding: 3rem 3.5rem;
+  border-radius: 16px;
+  padding: 2.5rem 3rem;
   box-shadow: 0 16px 35px rgba(15, 35, 95, 0.12);
-  max-width: 420px;
-  text-align: center;
+  width: min(720px, 92vw);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.app h1 {
-  margin-bottom: 1rem;
+.app__header h1 {
+  margin: 0;
   font-size: 2.25rem;
 }
 
-.app p {
+.tab-menu {
+  display: flex;
+  gap: 0.5rem;
+  background: #f3f5fb;
+  padding: 0.4rem;
+  border-radius: 999px;
+}
+
+.tab-menu__item {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #40506a;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tab-menu__item:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.tab-menu__item.is-active {
+  background: #ffffff;
+  color: #0f235f;
+  box-shadow: 0 6px 16px rgba(15, 35, 95, 0.15);
+}
+
+.tab-content {
+  background: linear-gradient(180deg, rgba(15, 35, 95, 0.04) 0%, rgba(15, 35, 95, 0.01) 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  min-height: 240px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.tool-panel {
+  width: 100%;
+}
+
+.tool-panel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.75rem;
+  color: #0f235f;
+}
+
+.tool-panel p {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  color: #40506a;
 }
