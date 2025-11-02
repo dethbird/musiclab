@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Note, Scale, and Duration Helper</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; max-width: 400px; margin: auto; }
+    .field { margin-bottom: 1rem; }
+    label { display: block; margin-bottom: 0.25rem; font-weight: bold; }
+    select, input { width: 100%; padding: 0.5rem; font-size: 1rem; }
+    .output { background: #f5f5f5; padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem; }
+    .output div { margin-bottom: 0.25rem; }
+    .btn { padding: 0.4rem 0.65rem; cursor: pointer; }
+    .row-btn { float: right; }
+    table th, table td { font-size: 0.95rem; }
+    pre { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  </style>
+</head>
+<body>
+
+  <h1>Note, Scale, &amp; Duration Helper</h1>
+
+  <div class="field">
+    <label for="noteName">Root Note</label>
+    <select id="noteName">
+      <option value="0">C</option>
+      <option value="1">C♯/D♭</option>
+      <option value="2">D</option>
+      <option value="3">D♯/E♭</option>
+      <option value="4">E</option>
+      <option value="5">F</option>
+      <option value="6">F♯/G♭</option>
+      <option value="7">G</option>
+      <option value="8">G♯/A♭</option>
+      <option value="9">A</option>
+      <option value="10">A♯/B♭</option>
+      <option value="11">B</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="octave">Octave</label>
+    <select id="octave">
+      <!-- MIDI standard C0 = 12, up to C8 = 108 -->
+      <script>
+        for(let i=0;i<=8;i++){ document.write(`<option value="${i}">${i}</option>`); }
+      </script>
+    </select>
+  </div>
+
+  <div class="output">
+    <div><strong>MIDI Number:</strong> <span id="midiOut">—</span></div>
+  </div>
+
+  <hr>
+
+  <!-- Scale Selector -->
+  <div class="field">
+    <label for="scaleSelect">Scale / Mode</label>
+    <select id="scaleSelect">
+      <option value="">— select a scale —</option>
+      <option value="aeolian">Aeolian</option>
+      <option value="ahirbhairav">Ahirbhairav</option>
+      <option value="ajam">Ajam</option>
+      <option value="atharKurd">Athar Kurd</option>
+      <option value="augmented">Augmented</option>
+      <option value="augmented2">Augmented 2</option>
+      <option value="bartok">Bartok</option>
+      <option value="bastanikar">Bastanikar</option>
+      <option value="bayati">Bayati</option>
+      <option value="bhairav">Bhairav</option>
+      <option value="chinese">Chinese</option>
+      <option value="chromatic">Chromatic</option>
+      <option value="chromatic24">Chromatic 24</option>
+      <option value="diminished">Diminished</option>
+      <option value="diminished2">Diminished 2</option>
+      <option value="dorian">Dorian</option>
+      <option value="egyptian">Egyptian</option>
+      <option value="enigmatic">Enigmatic</option>
+      <option value="farahfaza">Farahfaza</option>
+      <option value="gong">Gong</option>
+      <option value="harmonicMajor">Harmonic Major</option>
+      <option value="harmonicMinor">Harmonic Minor</option>
+      <option value="hexAeolian">Hex Aeolian</option>
+      <option value="hexDorian">Hex Dorian</option>
+      <option value="hexMajor6">Hex Major 6</option>
+      <option value="hexMajor7">Hex Major 7</option>
+      <option value="hexPhrygian">Hex Phrygian</option>
+      <option value="hexSus">Hex Sus</option>
+      <option value="hijaz">Hijaz</option>
+      <option value="hijazDesc">Hijaz Descending</option>
+      <option value="hijazKar">hijazKar</option>
+      <option value="hindu">Hindu</option>
+      <option value="hirajoshi">Hirajoshi</option>
+      <option value="hungarianMinor">Hungarian Minor</option>
+      <option value="husseini">Husseini</option>
+      <option value="huzam">Huzam</option>
+      <option value="indian">Indian</option>
+      <option value="ionian">Ionian</option>
+      <option value="iraq">Iraq</option>
+      <option value="iwato">Iwato</option>
+      <option value="jiao">Jiao</option>
+      <option value="jiharkah">Jiharkah</option>
+      <option value="karjighar">Karjighar</option>
+      <option value="kijazKarKurd">Kijaz Kar Kurd</option>
+      <option value="kumoi">Kumai</option>
+      <option value="kurd">Kurd</option>
+      <option value="leadingWhole">Leading Whole Tone</option>
+      <option value="locrian">Locrian</option>
+      <option value="locrianMajor">Locrian Major</option>
+      <option value="lydian">Lydian</option>
+      <option value="lydianMinor">Lydian Minor</option>
+      <option value="mahur">Mahur</option>
+      <option value="major">Major</option>
+      <option value="majorPentatonic">Major Pentatonic</option>
+      <option value="marva">Marva</option>
+      <option value="melodicMajor">Melodic Major</option>
+      <option value="melodicMinor">Melodic Minor</option>
+      <option value="melodicMinorDesc">Melodic Minor Descending</option>
+      <option value="minor">Natural Minor</option>
+      <option value="minorPentatonic">Minor Pentatonic</option>
+      <option value="mixolydian">Mixolydian</option>
+      <option value="murassah">Murassah</option>
+      <option value="mustar">Mustar</option>
+      <option value="nahawand">Nahawand</option>
+      <option value="nahawandDesc">Nahawand Descending</option>
+      <option value="nairuz">Nairuz</option>
+      <option value="nawaAthar">Nawa Athar</option>
+      <option value="neapolitanMajor">Neapolitan Major</option>
+      <option value="neapolitanMinor">Neapolitan Minor</option>
+      <option value="nikriz">Nikriz</option>
+      <option value="partch_o1">Partch Otonality 1</option>
+      <option value="partch_o2">Partch Otonality 2</option>
+      <option value="partch_o3">Partch Otonality 3</option>
+      <option value="partch_o4">Partch Otonality 4</option>
+      <option value="partch_o5">Partch Otonality 5</option>
+      <option value="partch_o6">Partch Otonality 6</option>
+      <option value="partch_u1">Partch Utonality 1</option>
+      <option value="partch_u2">Partch Utonality 2</option>
+      <option value="partch_u3">Partch Utonality 3</option>
+      <option value="partch_u4">Partch Utonality 4</option>
+      <option value="partch_u5">Partch Utonality 5</option>
+      <option value="partch_u6">Partch Utonality 6</option>
+      <option value="pelog">Pelog</option>
+      <option value="phrygian">Phrygian</option>
+      <option value="prometheus">Prometheus</option>
+      <option value="purvi">Purvi</option>
+      <option value="rast">Rast</option>
+      <option value="rastDesc">Rast Descending</option>
+      <option value="ritusen">Ritusen</option>
+      <option value="romanianMinor">Romanian Minor</option>
+      <option value="saba">Saba</option>
+      <option value="scriabin">Scriabin</option>
+      <option value="shang">Shang</option>
+      <option value="shawqAfza">Shawq Afza</option>
+      <option value="sikah">Sikah</option>
+      <option value="sikahDesc">Sikah Descending</option>
+      <option value="spanish">Spanish</option>
+      <option value="superLocrian">Super Locrian</option>
+      <option value="suznak">Suznak</option>
+      <option value="todi">Todi</option>
+      <option value="ushaqMashri">Ushaq Mashri</option>
+      <option value="whole">Whole Tone</option>
+      <option value="yakah">Yakah</option>
+      <option value="yakahDesc">Yakah Descending</option>
+      <option value="yu">Yu</option>
+      <option value="zamzam">Zamzam</option>
+      <option value="zanjaran">Zanjaran</option>
+      <option value="zhi">Zhi</option>
+    </select>
+  </div>
+
+  <div class="output">
+    <div id="scaleId"></div>
+    <div id="intervalDisplay">Select a scale to see its intervals.</div>
+  </div>
+
+  <!-- Chord Voicings Explorer -->
+  <hr>
+  <div class="field">
+    <label for="chordType">Chord Type</label>
+    <select id="chordType">
+      <option value="maj">Major (A)</option>
+      <option value="min">Minor (Am)</option>
+      <option value="dom7">Dominant 7 (A7)</option>
+      <option value="min7">Minor 7 (Am7)</option>
+      <option value="maj7">Major 7 (Amaj7)</option>
+      <option value="sus4">Sus4 (Asus4)</option>
+      <option value="sus2">Sus2 (Asus2)</option>
+      <option value="add9">Add9 (Aadd9)</option>
+      <option value="sixth">6 (A6)</option>
+      <option value="min6">m6 (Am6)</option>
+      <option value="dim">Diminished (Adim)</option>
+      <option value="aug">Augmented (A+)</option>
+    </select>
+  </div>
+
+  <div class="output">
+    <div id="chordHeader"><strong>Chord:</strong> —</div>
+    <table id="chordTable" style="width:100%; border-collapse:collapse; margin-top:0.5rem;">
+      <thead>
+        <tr>
+          <th style="text-align:left; border-bottom:1px solid #ccc; padding:0.4rem;">Voicing</th>
+          <th style="text-align:left; border-bottom:1px solid #ccc; padding:0.4rem;">Degrees @ Oct</th>
+          <th style="text-align:left; border-bottom:1px solid #ccc; padding:0.4rem;">MIDI (absolute)</th>
+        </tr>
+      </thead>
+      <tbody id="chordBody"></tbody>
+    </table>
+  </div>
+
+  <!-- ▼▼ NEW: Export / Copy toolbar (placed above Duration section) ▼▼ -->
+  <div class="field" style="display:flex; gap:0.5rem; align-items:center; margin-top:0.5rem;">
+    <label for="exportFormat" style="margin:0; white-space:nowrap;">Export format</label>
+    <select id="exportFormat" style="flex:1;">
+      <option value="midinote">MIDI list</option>
+      <option value="pbind_midinote">Pbind (\\midinote)</option>
+      <option value="deg_oct_pairs">Semitone degree@oct pairs</option>
+      <option value="deg_oct_arrays">Semitone degree + octave arrays</option>
+    </select>
+    <button id="copyAllBtn" type="button" class="btn">Copy All</button>
+  </div>
+  <!-- ▲▲ NEW: Export / Copy toolbar ▲▲ -->
+
+  <hr>
+
+  <!-- Duration Fraction -->
+  <div class="field">
+    <label for="frac">Duration Fraction</label>
+    <input id="frac" type="text" placeholder="e.g. 1/4 or 1/3" />
+  </div>
+
+  <div class="output">
+    <div><strong>Fraction:</strong> <span id="fracOut">—</span></div>
+    <div><strong>Decimal:</strong> <span id="decOut">—</span></div>
+  </div>
+
+  <script>
+    // compute and display MIDI note
+    function updateMidi() {
+      const semitone = parseInt(noteName.value,10);
+      const octave = parseInt(octaveSel.value,10);
+      const midi = (octave + 1)*12 + semitone; // C0=12 → (oct+1)*12 + semitone
+      midiOut.textContent = midi;
+    }
+
+    // parse and display fraction + decimal
+    function updateFrac() {
+      const txt = fracInput.value.trim();
+      fracOut.textContent = txt || '—';
+      const parts = txt.split('/');
+      if(parts.length === 2) {
+        const num = parseFloat(parts[0]);
+        const den = parseFloat(parts[1]);
+        if(!isNaN(num) && !isNaN(den) && den !== 0) {
+          decOut.textContent = (num/den).toFixed(4).replace(/\.?0+$/,'');
+          return;
+        }
+      }
+      decOut.textContent = '—';
+    }
+
+    // grab DOM
+    const noteName = document.getElementById('noteName');
+    const octaveSel = document.getElementById('octave');
+    const midiOut = document.getElementById('midiOut');
+    const fracInput = document.getElementById('frac');
+    const fracOut = document.getElementById('fracOut');
+    const decOut = document.getElementById('decOut');
+
+    // wire events
+    noteName.addEventListener('change', updateMidi);
+    octaveSel.addEventListener('change', updateMidi);
+    fracInput.addEventListener('input', updateFrac);
+
+    // init
+    updateMidi();
+    updateFrac();
+  </script>
+
+  <script>
+    // -------- Scale data (with sizes) --------
+    const scaleMap = {
+      "aeolian":     { name: "Aeolian",  size: 7,  degrees: [0,2,3,5,7,8,10] },
+      "ahirbhairav": { name: "Ahirbhairav", size: 7, degrees: [0,1,4,5,7,9,10] },
+      "ajam":        { name: "Ajam",     size: 7,  degrees: [0,4,8,10,14,18,22] },
+      "atharKurd":   { name: "Athar Kurd", size: 7, degrees: [0,2,6,12,14,16,22] },
+      "augmented":   { name: "Augmented", size: 6, degrees: [0,3,4,7,8,11] },
+      "augmented2":  { name: "Augmented 2", size: 6, degrees: [0,1,4,5,8,9] },
+      "bartok":      { name: "Bartok",   size: 7,  degrees: [0,2,4,5,7,8,10] },
+      "bastanikar":  { name: "Bastanikar", size: 7, degrees: [0,3,7,10,13,15,21] },
+      "bayati":      { name: "Bayati",   size: 7,  degrees: [0,3,6,10,14,16,20] },
+      "bhairav":     { name: "Bhairav",  size: 7,  degrees: [0,1,4,5,7,8,11] },
+      "chinese":     { name: "Chinese",  size: 5,  degrees: [0,4,6,7,11] },
+      "chromatic":   { name: "Chromatic", size:12, degrees: [0,1,2,3,4,5,6,7,8,9,10,11] },
+      "chromatic24": { name: "Chromatic 24", size:24, degrees: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23] },
+      "diminished":  { name: "Diminished", size: 8, degrees: [0,1,3,4,6,7,9,10] },
+      "diminished2": { name: "Diminished 2", size: 8, degrees: [0,2,3,5,6,8,9,11] },
+      "dorian":      { name: "Dorian",   size: 7,  degrees: [0,2,3,5,7,9,10] },
+      "egyptian":    { name: "Egyptian", size: 5,  degrees: [0,2,5,7,10] },
+      "enigmatic":   { name: "Enigmatic", size: 7, degrees: [0,1,4,6,8,10,11] },
+      "farahfaza":   { name: "Farahfaza", size: 7, degrees: [0,4,6,10,14,16,20] },
+      "gong":        { name: "Gong",     size: 5,  degrees: [0,2,4,7,9] },
+      "harmonicMajor":{name:"Harmonic Major", size:7, degrees:[0,2,4,5,7,8,11]},
+      "harmonicMinor":{name:"Harmonic Minor", size:7, degrees:[0,2,3,5,7,8,11]},
+      "hexAeolian":  { name: "Hex Aeolian", size: 6, degrees: [0,3,5,7,8,10] },
+      "hexDorian":   { name: "Hex Dorian",  size: 6, degrees: [0,2,3,5,7,10] },
+      "hexMajor6":   { name: "Hex Major 6", size: 6, degrees: [0,2,4,5,7,9] },
+      "hexMajor7":   { name: "Hex Major 7", size: 6, degrees: [0,2,4,7,9,11] },
+      "hexPhrygian": { name: "Hex Phrygian", size:6, degrees: [0,1,3,5,8,10] },
+      "hexSus":      { name: "Hex Sus",     size:6, degrees: [0,2,5,7,9,10] },
+      "hijaz":       { name: "Hijaz",       size:7, degrees:[0,2,8,10,14,17,20] },
+      "hijazDesc":   { name: "Hijaz Descending", size:7, degrees:[0,2,8,10,14,16,20] },
+      "hijazKar":    { name: "hijazKar",    size:7, degrees:[0,2,8,10,14,16,22] },
+      "hindu":       { name: "Hindu",       size:7, degrees:[0,2,4,5,7,8,10] },
+      "hirajoshi":   { name: "Hirajoshi",   size:5, degrees:[0,2,3,7,8] },
+      "hungarianMinor":{name:"Hungarian Minor", size:7, degrees:[0,2,3,6,7,8,11]},
+      "husseini":    { name: "Husseini",    size:7, degrees:[0,3,6,10,14,17,21] },
+      "huzam":       { name: "Huzam",       size:7, degrees:[0,3,7,9,15,17,21] },
+      "indian":      { name: "Indian",      size:5, degrees:[0,4,5,7,10] },
+      "ionian":      { name: "Ionian",      size:7, degrees:[0,2,4,5,7,9,11] },
+      "iraq":        { name: "Iraq",        size:7, degrees:[0,3,7,10,13,17,21] },
+      "iwato":       { name: "Iwato",       size:5, degrees:[0,1,5,6,10] },
+      "jiao":        { name: "Jiao",        size:5, degrees:[0,3,5,8,10] },
+      "jiharkah":    { name: "Jiharkah",    size:7, degrees:[0,4,8,10,14,18,21] },
+      "karjighar":   { name: "Karjighar",   size:7, degrees:[0,3,6,10,12,18,20] },
+      "kijazKarKurd":{ name: "Kijaz Kar Kurd", size:7, degrees:[0,2,8,10,14,16,22] },
+      "kumoi":       { name: "Kumai",       size:5, degrees:[0,2,3,7,9] },
+      "kurd":        { name: "Kurd",        size:7, degrees:[0,2,6,10,14,16,20] },
+      "leadingWhole":{ name: "Leading Whole Tone", size:7, degrees:[0,2,4,6,8,10,11] },
+      "locrian":     { name: "Locrian",     size:7, degrees:[0,1,3,5,6,8,10] },
+      "locrianMajor":{ name: "Locrian Major", size:7, degrees:[0,2,4,5,6,8,10] },
+      "lydian":      { name: "Lydian",      size:7, degrees:[0,2,4,6,7,9,11] },
+      "lydianMinor": { name: "Lydian Minor", size:7, degrees:[0,2,4,6,7,8,10] },
+      "mahur":       { name: "Mahur",       size:7, degrees:[0,4,7,10,14,18,22] },
+      "major":       { name: "Major",       size:7, degrees:[0,2,4,5,7,9,11] },
+      "majorPentatonic":{name:"Major Pentatonic", size:5, degrees:[0,2,4,7,9] },
+      "marva":       { name: "Marva",       size:7, degrees:[0,1,4,6,7,9,11] },
+      "melodicMajor":{ name:"Melodic Major", size:7, degrees:[0,2,4,5,7,8,10] },
+      "melodicMinor":{ name:"Melodic Minor", size:7, degrees:[0,2,3,5,7,9,11] },
+      "melodicMinorDesc":{ name:"Melodic Minor Descending", size:7, degrees:[0,2,3,5,7,8,10] },
+      "minor":       { name: "Natural Minor", size:7, degrees:[0,2,3,5,7,8,10] },
+      "minorPentatonic":{name:"Minor Pentatonic", size:5, degrees:[0,3,5,7,10] },
+      "mixolydian":  { name: "Mixolydian",  size:7, degrees:[0,2,4,5,7,9,10] },
+      "murassah":    { name: "Murassah",    size:7, degrees:[0,4,6,10,12,18,20] },
+      "mustar":      { name: "Mustar",      size:7, degrees:[0,5,7,11,13,17,21] },
+      "nahawand":    { name: "Nahawand",    size:7, degrees:[0,4,6,10,14,16,22] },
+      "nahawandDesc":{ name: "Nahawand Descending", size:7, degrees:[0,4,6,10,14,16,20] },
+      "nairuz":      { name: "Nairuz",      size:7, degrees:[0,4,7,10,14,17,20] },
+      "nawaAthar":   { name: "Nawa Athar",  size:7, degrees:[0,4,6,12,14,16,22] },
+      "neapolitanMajor":{ name:"Neapolitan Major", size:7, degrees:[0,1,3,5,7,9,11] },
+      "neapolitanMinor":{ name:"Neapolitan Minor", size:7, degrees:[0,1,3,5,7,8,11] },
+      "nikriz":      { name: "Nikriz",      size:7, degrees:[0,4,6,12,14,18,20] },
+      "partch_o1":   { name: "Partch Otonality 1", size:6, degrees:[0,8,14,20,25,34] },
+      "partch_o2":   { name: "Partch Otonality 2", size:6, degrees:[0,7,13,18,27,35] },
+      "partch_o3":   { name: "Partch Otonality 3", size:6, degrees:[0,6,12,21,29,36] },
+      "partch_o4":   { name: "Partch Otonality 4", size:6, degrees:[0,5,15,23,30,37] },
+      "partch_o5":   { name: "Partch Otonality 5", size:6, degrees:[0,10,18,25,31,38] },
+      "partch_o6":   { name: "Partch Otonality 6", size:6, degrees:[0,9,16,22,28,33] },
+      "partch_u1":   { name: "Partch Utonality 1", size:6, degrees:[0,9,18,23,29,35] },
+      "partch_u2":   { name: "Partch Utonality 2", size:6, degrees:[0,8,16,25,30,36] },
+      "partch_u3":   { name: "Partch Utonality 3", size:6, degrees:[0,7,14,22,31,37] },
+      "partch_u4":   { name: "Partch Utonality 4", size:6, degrees:[0,6,13,20,28,38] },
+      "partch_u5":   { name: "Partch Utonality 5", size:6, degrees:[0,5,12,18,25,33] },
+      "partch_u6":   { name: "Partch Utonality 6", size:6, degrees:[0,10,15,21,27,34] },
+      "pelog":       { name: "Pelog",      size:5, degrees:[0,1,3,7,8] },
+      "phrygian":    { name: "Phrygian",   size:7, degrees:[0,1,3,5,7,8,10] },
+      "prometheus":  { name: "Prometheus", size:5, degrees:[0,2,4,6,11] },
+      "purvi":       { name: "Purvi",      size:7, degrees:[0,1,4,6,7,8,11] },
+      "rast":        { name: "Rast",       size:7, degrees:[0,4,7,10,14,18,21] },
+      "rastDesc":    { name: "Rast Descending", size:7, degrees:[0,4,7,10,14,18,20] },
+      "ritusen":     { name: "Ritusen",    size:5, degrees:[0,2,5,7,9] },
+      "romanianMinor":{ name:"Romanian Minor", size:7, degrees:[0,2,3,6,7,9,10] },
+      "saba":        { name: "Saba",       size:7, degrees:[0,3,6,8,12,16,20] },
+      "scriabin":    { name: "Scriabin",   size:5, degrees:[0,1,4,7,9] },
+      "shang":       { name: "Shang",      size:5, degrees:[0,2,5,7,10] },
+      "shawqAfza":   { name: "Shawq Afza", size:7, degrees:[0,4,8,10,14,16,22] },
+      "sikah":       { name: "Sikah",      size:7, degrees:[0,3,7,11,14,17,21] },
+      "sikahDesc":   { name: "Sikah Descending", size:7, degrees:[0,3,7,11,13,17,21] },
+      "spanish":     { name: "Spanish",    size:7, degrees:[0,1,4,5,7,8,10] },
+      "superLocrian":{ name: "Super Locrian", size:7, degrees:[0,1,3,4,6,8,10] },
+      "suznak":      { name: "Suznak",     size:7, degrees:[0,4,7,10,14,16,22] },
+      "todi":        { name: "Todi",       size:7, degrees:[0,1,3,6,7,8,11] },
+      "ushaqMashri": { name: "Ushaq Mashri", size:7, degrees:[0,4,6,10,14,17,21] },
+      "whole":       { name: "Whole Tone", size:6, degrees:[0,2,4,6,8,10] },
+      "yakah":       { name: "Yakah",      size:7, degrees:[0,4,7,10,14,18,21] },
+      "yakahDesc":   { name: "Yakah Descending", size:7, degrees:[0,4,7,10,14,18,20] },
+      "yu":          { name: "Yu",         size:5, degrees:[0,3,5,7,10] },
+      "zamzam":      { name: "Zamzam",     size:7, degrees:[0,2,6,8,14,16,20] },
+      "zanjaran":    { name: "Zanjaran",   size:7, degrees:[0,2,8,10,14,18,20] },
+      "zhi":         { name: "Zhi",        size:5, degrees:[0,2,5,7,9] }
+    };
+
+    const scaleSelect = document.getElementById('scaleSelect');
+    const intervalDisplay = document.getElementById('intervalDisplay');
+    const scaleId = document.getElementById('scaleId');
+
+    scaleSelect.addEventListener('change', () => {
+      const scale = scaleMap[ scaleSelect.value ];
+      const degs = scale?.degrees || null;
+      if(!degs) {
+        scaleId.innerHTML = '';
+        intervalDisplay.textContent = 'Select a scale to see its intervals.';
+        return;
+      }
+      const max = Math.max(...degs);
+      const parts = [];
+      for(let i=0; i<=max; i++){ parts.push( degs.includes(i) ? i.toString() : ' ' ); }
+      scaleId.innerHTML = `<strong>Scale:</strong> ${scale.name} <br /> <strong>Size:</strong> ${scale.size}`;
+      intervalDisplay.innerHTML = '<pre>' + parts.join(' ') + '</pre>';
+    });
+  </script>
+
+  <script>
+    // -------- Chord explorer + Copy support --------
+    const chordFormulas = {
+      maj:   { name: "Major",        symbol: "",     degrees: [0, 4, 7] },
+      min:   { name: "Minor",        symbol: "m",    degrees: [0, 3, 7] },
+      dom7:  { name: "Dominant 7",   symbol: "7",    degrees: [0, 4, 7, 10] },
+      min7:  { name: "Minor 7",      symbol: "m7",   degrees: [0, 3, 7, 10] },
+      maj7:  { name: "Major 7",      symbol: "maj7", degrees: [0, 4, 7, 11] },
+      sus4:  { name: "Sus4",         symbol: "sus4", degrees: [0, 5, 7] },
+      sus2:  { name: "Sus2",         symbol: "sus2", degrees: [0, 2, 7] },
+      add9:  { name: "Add9",         symbol: "add9", degrees: [0, 4, 7, 14] },
+      sixth: { name: "6",            symbol: "6",    degrees: [0, 4, 7, 9] },
+      min6:  { name: "Minor 6",      symbol: "m6",   degrees: [0, 3, 7, 9] },
+      dim:   { name: "Diminished",   symbol: "dim",  degrees: [0, 3, 6] },
+      aug:   { name: "Augmented",    symbol: "+",    degrees: [0, 4, 8] }
+    };
+
+    // helpers
+    const NOTE_LABELS = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+    function noteLabelFromSemitone(v){ const i = (parseInt(v,10) % 12 + 12) % 12; return NOTE_LABELS[i]; }
+    function ensureAscending(arr){ const out=[]; let prev=-Infinity; for (let x of arr){ let v=x; while (v<=prev) v+=12; out.push(v); prev=v; } return out; }
+    function normalizeNonNegative(arr){ let a=arr.slice(); while (Math.min(...a)<0) a=a.map(x=>x+12); return a; }
+    function inversion(deg,k){ const b=deg.slice().sort((a,b)=>a-b); const front=b.slice(k); const back=b.slice(0,k).map(x=>x+12); return ensureAscending(front.concat(back)); }
+    function drop2(deg){ const c=ensureAscending(deg.slice().sort((a,b)=>a-b)); if(c.length<4) return null; const i=c.length-2; return normalizeNonNegative(ensureAscending([c[i]-12, ...c.filter((_,j)=>j!==i)])); }
+    function drop3(deg){ const c=ensureAscending(deg.slice().sort((a,b)=>a-b)); if(c.length<4) return null; const i=c.length-3; return normalizeNonNegative(ensureAscending([c[i]-12, ...c.filter((_,j)=>j!==i)])); }
+    function spreadTriad(deg){ if(deg.length!==3) return null; const [r,t,f]=deg.slice().sort((a,b)=>a-b); return ensureAscending([r, f, t+12]); }
+    function openTriad(deg){ if(deg.length!==3) return null; const [r,t,f]=deg.slice().sort((a,b)=>a-b); return ensureAscending([r, t+12, f+12]); }
+    function degOctString(list){ return list.map(p => `${p%12}@${Math.floor(p/12)}`).join('  '); }
+    function midiArrayFromRootOffsets(rootMidi, list){ return list.map(p => rootMidi + p); }
+
+    const chordTypeSel = document.getElementById('chordType');
+    const chordHeader  = document.getElementById('chordHeader');
+    const chordBody    = document.getElementById('chordBody');
+
+    const noteNameEl = document.getElementById('noteName');
+    const octaveEl   = document.getElementById('octave');
+
+    // NEW: copy UI refs
+    const exportFormat = document.getElementById('exportFormat');
+    const copyAllBtn   = document.getElementById('copyAllBtn');
+
+    function updateChordTable() {
+      const chordId = chordTypeSel.value;
+      const formula = chordFormulas[chordId];
+
+      const rootSemitone = parseInt(noteNameEl.value, 10);
+      const rootOct      = parseInt(octaveEl.value, 10);
+      const rootMidi     = (rootOct + 1) * 12 + rootSemitone;
+
+      const rootName = noteLabelFromSemitone(rootSemitone);
+      const symbol   = formula.symbol ? rootName + formula.symbol : rootName;
+
+      const base = formula.degrees;
+      const close = [
+        { name: "Close (Root)",    list: ensureAscending(base.slice().sort((a,b)=>a-b)) },
+        { name: "Close (1st inv)", list: (base.length>2 ? inversion(base,1) : null) },
+        { name: "Close (2nd inv)", list: (base.length>2 ? inversion(base,2) : null) },
+        { name: "Close (3rd inv)", list: (base.length>3 ? inversion(base,3) : null) }
+      ].filter(v => v.list);
+
+      const drops = [
+        { name: "Drop-2 (root position)", list: drop2(base) },
+        { name: "Drop-3 (root position)", list: drop3(base) }
+      ].filter(v => v.list);
+
+      const spreads = (base.length === 3)
+        ? [
+            { name: "Spread Triad (R–5–10)", list: spreadTriad(base) },
+            { name: "Open Triad (R–10–14)",  list: openTriad(base) }
+          ].filter(v => v.list)
+        : [];
+
+      const voicings = [...close, ...drops, ...spreads];
+
+      chordHeader.innerHTML = `<strong>Chord:</strong> ${symbol} &nbsp; <small>(${formula.name})</small>`;
+      chordBody.innerHTML = '';
+
+      voicings.forEach((v, idx) => {
+        const degOct = degOctString(v.list);
+        const midis  = midiArrayFromRootOffsets(rootMidi, v.list);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="padding:0.4rem; border-bottom:1px solid #e5e5e5;">${v.name}</td>
+          <td style="padding:0.4rem; border-bottom:1px solid #e5e5e5; font-family:monospace;">${degOct}</td>
+          <td style="padding:0.4rem; border-bottom:1px solid #e5e5e5; font-family:monospace;">
+            ${midis.join(', ')}
+            <button type="button" class="btn row-btn copyRowBtn" data-root="${rootMidi}" data-list='${JSON.stringify(v.list)}'>Copy</button>
+          </td>
+        `;
+        chordBody.appendChild(tr);
+      });
+
+      if (voicings.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="3" style="padding:0.4rem; font-style:italic;">No voicings available for this chord.</td>`;
+        chordBody.appendChild(tr);
+      }
+    }
+
+    function formatForClipboard(format, rootMidi, offsets) {
+      const midis = midiArrayFromRootOffsets(rootMidi, offsets);
+      const degs  = offsets.map(p => p % 12);
+      const octs  = offsets.map(p => Math.floor(p / 12));
+
+      switch (format) {
+        case 'midinote':
+          return `[${midis.join(', ')}]`;
+        case 'pbind_midinote':
+          return `Pbind(
+  \\midinote, Pseq([${midis.join(', ')}], 1),
+  \\dur, 0.25
+).play;`;
+        case 'deg_oct_pairs':
+          return `[${offsets.map(p => `${p%12}@${Math.floor(p/12)}`).join(', ')}]`;
+        case 'deg_oct_arrays':
+          return `{ degrees: [${degs.join(', ')}], octaves: [${octs.join(', ')}] }`;
+        default:
+          return `[${midis.join(', ')}]`;
+      }
+    }
+
+    async function copyText(text) {
+      try { await navigator.clipboard.writeText(text); }
+      catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+      }
+    }
+
+    // Per-row copy
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.classList.contains('copyRowBtn')) {
+        const rootMidi = parseInt(e.target.dataset.root, 10);
+        const list = JSON.parse(e.target.dataset.list);
+        const text = formatForClipboard(exportFormat.value, rootMidi, list);
+        copyText(text);
+        e.target.textContent = 'Copied!';
+        setTimeout(() => e.target.textContent = 'Copy', 900);
+      }
+    });
+
+    // Copy all rows
+    copyAllBtn.addEventListener('click', () => {
+      const btns = Array.from(document.querySelectorAll('.copyRowBtn'));
+      if (btns.length === 0) return;
+      const blocks = btns.map((b, i) => {
+        const rootMidi = parseInt(b.dataset.root, 10);
+        const list = JSON.parse(b.dataset.list);
+        return `// Voicing ${i+1}\n${formatForClipboard(exportFormat.value, rootMidi, list)}`;
+      });
+      copyText(blocks.join('\n\n'));
+      copyAllBtn.textContent = 'Copied!';
+      setTimeout(() => copyAllBtn.textContent = 'Copy All', 900);
+    });
+
+    // events
+    chordTypeSel.addEventListener('change', updateChordTable);
+    noteNameEl.addEventListener('change', updateChordTable);
+    octaveEl.addEventListener('change', updateChordTable);
+
+    // init
+    updateChordTable();
+  </script>
+
+</body>
+</html>
