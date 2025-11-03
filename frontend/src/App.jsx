@@ -253,15 +253,19 @@ function App() {
                     <option value="">— degree —</option>
                     {selectedScale && Array.isArray(selectedScale.degrees)
                       ? selectedScale.degrees.map((d) => {
-                          // compute absolute note label for this degree based on current note+octave
+                          // compute absolute note label and MIDI for this degree based on current note+octave
                           const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
                           const baseIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
-                          const total = baseIdx + Number(d);
+                          const semis = Number(d);
+                          const total = baseIdx + semis;
                           const name = NOTE_NAMES[((total % 12) + 12) % 12];
                           const octaveOffset = Math.floor(total / 12);
                           const baseOct = Number.isFinite(Number(octave)) ? Number(octave) : 0;
                           const displayOct = baseOct + octaveOffset;
-                          const label = `${d}) ${name}${displayOct}`;
+                          // MIDI using C0 = 12 convention used elsewhere in app
+                          const rootMidi = (baseOct + 1) * 12 + baseIdx;
+                          const midi = rootMidi + semis;
+                          const label = `${d}) ${name}${displayOct} (${midi})`;
                           return (
                             <option key={d} value={String(d)}>{label}</option>
                           );
