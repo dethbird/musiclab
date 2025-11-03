@@ -97,7 +97,7 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '' }) {
     const repeat = Math.max(1, Number(form.repeat) | 0);
     const pitchVal = form.pitch === '' ? 60 : Number(form.pitch);
     if (form.pitch !== '' && !Number.isFinite(pitchVal)) {
-      window.alert('Pitch must be a number (midinote) or left blank');
+      window.alert('Midinote must be a number or left blank');
       return;
     }
     setPoints((prev) => [
@@ -263,7 +263,7 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '' }) {
                   return (
                     <div
                       key={idx}
-                      title={isNote ? `note #${noteCount} (pitch ${c.pitch}), dur: ${String(c.dur)}` : `rest, dur: ${String(c.dur)}`}
+                      title={isNote ? `note #${noteCount} (midinote ${c.pitch}), dur: ${String(c.dur)}` : `rest, dur: ${String(c.dur)}`}
                       style={{
                         position: 'relative',
                         width: `${widthPct}%`,
@@ -352,7 +352,7 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '' }) {
               />
             </div>
             <div>
-              <label className="label is-small">Pitch (midinote)</label>
+    <label className="label is-small">Midinote</label>
     <input className="input is-small" type="number" placeholder="optional"
       value={form.pitch}
       onChange={(e) => setForm((f) => ({ ...f, pitch: e.target.value }))}
@@ -377,7 +377,7 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '' }) {
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Start</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Duration</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Repeat</th>
-                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Pitch</th>
+                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Midinote</th>
                   <th></th>
                 </tr>
               </thead>
