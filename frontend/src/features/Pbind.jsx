@@ -409,7 +409,19 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '' }) {
                       <td style={{ padding: '0.25rem' }}>{String(p.startBeat)}</td>
                       <td style={{ padding: '0.25rem' }}>{String(p.duration)}</td>
                       <td style={{ padding: '0.25rem' }}>{String(p.repeat)}</td>
-                      <td style={{ padding: '0.25rem' }}>{p.pitch == null ? '—' : String(p.pitch)}</td>
+                      <td style={{ padding: '0.25rem' }}>
+                        {p.pitch == null ? '—' : (
+                          (() => {
+                            const midi = Number(p.pitch);
+                            if (!Number.isFinite(midi)) return String(p.pitch);
+                            const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+                            const idx = ((midi % 12) + 12) % 12;
+                            const name = NOTE_NAMES[idx] || 'C';
+                            const oct = Math.floor(midi / 12) - 1;
+                            return `${midi} (${name}${oct})`;
+                          })()
+                        )}
+                      </td>
                       <td style={{ padding: '0.25rem' }}>{p.degree == null ? '—' : String(p.degree)}</td>
                       <td style={{ padding: '0.25rem' }}>{p.octave == null ? '—' : String(p.octave)}</td>
                       <td style={{ padding: '0.25rem' }}>
