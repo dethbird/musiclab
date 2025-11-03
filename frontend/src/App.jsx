@@ -64,6 +64,27 @@ function App() {
       // ignore
     }
   }, [octave]);
+  
+  // Hoisted selected scale id, shared with Scales component
+  const [selectedScaleId, setSelectedScaleId] = useState(() => {
+    try {
+      return localStorage.getItem('musiclab:selectedScale') || '';
+    } catch (err) {
+      return '';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (selectedScaleId) {
+        localStorage.setItem('musiclab:selectedScale', selectedScaleId);
+      } else {
+        localStorage.removeItem('musiclab:selectedScale');
+      }
+    } catch (err) {
+      // ignore
+    }
+  }, [selectedScaleId]);
   const [scaleState, setScaleState] = useState({ status: 'idle', data: null, error: null });
   const [scalesToCompare, setScalesToCompare] = useState(() => {
     try {
@@ -131,6 +152,8 @@ function App() {
           }}
           note={note}
           octave={octave}
+          selectedScaleId={selectedScaleId}
+          onSelectedScaleChange={(id) => setSelectedScaleId(id)}
         />
       );
     }
@@ -140,7 +163,7 @@ function App() {
       }
 
     return activeTabConfig.element;
-  }, [activeTab, scaleState, scalesToCompare, note, octave]);
+  }, [activeTab, scaleState, scalesToCompare, note, octave, selectedScaleId]);
 
   return (
     <main className="app">
@@ -183,6 +206,23 @@ function App() {
                     <option value="6">6</option>
                     <option value="7">7</option>
                     <option value="8">8</option>
+                  </select>
+                </div>
+              </div>
+              <div className="control" style={{ display: 'flex', flexDirection: 'column', marginLeft: '0.5rem' }}>
+                <label htmlFor="scale-select-header" className="label is-medium" style={{ marginBottom: '0.25rem', fontSize: '1.05rem' }}>Scale</label>
+                <div className="select is-medium">
+                  <select
+                    id="scale-select-header"
+                    value={selectedScaleId}
+                    aria-label="Selected scale"
+                    onChange={(e) => setSelectedScaleId(e.target.value)}
+                    style={{ fontSize: '1rem', minWidth: '200px' }}
+                  >
+                    <option value="">— none —</option>
+                    {Array.isArray(scaleState.data) ? scaleState.data.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    )) : null}
                   </select>
                 </div>
               </div>

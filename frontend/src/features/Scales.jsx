@@ -1,26 +1,37 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import PianoKeyboard from './PianoKeyboard.jsx';
 
-function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare, note = 'C', octave = '4' }) {
-  const [selectedScaleId, setSelectedScaleId] = useState(() => {
+function Scales({ status, scales = [], error, selectedToCompare, onToggleCompare, note = 'C', octave = '4', selectedScaleId: controlledSelectedScaleId, onSelectedScaleChange }) {
+  // Internal state only used when not controlled by parent
+  const [internalSelectedScaleId, setInternalSelectedScaleId] = useState(() => {
     try {
       return localStorage.getItem('musiclab:selectedScale') || '';
     } catch (err) {
       return '';
     }
   });
-  // persist selected scale id to localStorage so selection survives reloads
+  const isControlled = typeof controlledSelectedScaleId !== 'undefined';
+  const selectedScaleId = isControlled ? controlledSelectedScaleId : internalSelectedScaleId;
+  const setSelectedScaleId = (next) => {
+    if (isControlled) {
+      if (typeof onSelectedScaleChange === 'function') onSelectedScaleChange(next);
+    } else {
+      setInternalSelectedScaleId(next);
+    }
+  };
+  // Persist only when uncontrolled
   useEffect(() => {
+    if (isControlled) return;
     try {
-      if (selectedScaleId) {
-        localStorage.setItem('musiclab:selectedScale', selectedScaleId);
+      if (internalSelectedScaleId) {
+        localStorage.setItem('musiclab:selectedScale', internalSelectedScaleId);
       } else {
         localStorage.removeItem('musiclab:selectedScale');
       }
     } catch (err) {
       // ignore storage errors
     }
-  }, [selectedScaleId]);
+  }, [internalSelectedScaleId, isControlled]);
   const selectRef = useRef(null);
 
   const selectedScale = useMemo(() => {
