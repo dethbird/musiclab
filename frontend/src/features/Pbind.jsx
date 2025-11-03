@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Fr, toNumber } from '../lib/fraction.js';
 import { buildTimeline, toPbind, fracToScLiteral } from './pbind/buildTimeline.js';
 
-function Pbind() {
+function Pbind({ note = 'C', octave = '4', selectedDegree = '' }) {
   const STORAGE_KEY_POINTS = 'musiclab:pbind:points';
   const STORAGE_KEY_SETTINGS = 'musiclab:pbind:settings';
   const STORAGE_KEY_FORM = 'musiclab:pbind:form';
@@ -13,6 +13,22 @@ function Pbind() {
   const [points, setPoints] = useState([]);
 
   const [form, setForm] = useState({ startBeat: '0', duration: '1', repeat: 1, pitch: '' });
+
+  // Drive pitch by main app's selectedDegree, note, and octave
+  useEffect(() => {
+    const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+    const baseIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+    const baseOct = Number.isFinite(Number(octave)) ? Number(octave) : 0;
+    const sd = Number(selectedDegree);
+    if (!Number.isFinite(sd)) {
+      // if no valid degree, do not force a pitch value
+      return;
+    }
+    const rootMidi = (baseOct + 1) * 12 + baseIdx; // C0 = 12
+    const midi = rootMidi + sd;
+    const midiStr = String(midi);
+    setForm((f) => (f.pitch === midiStr ? f : { ...f, pitch: midiStr }));
+  }, [note, octave, selectedDegree]);
 
   // Storage modal state
   const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
@@ -337,10 +353,10 @@ function Pbind() {
             </div>
             <div>
               <label className="label is-small">Pitch (midinote)</label>
-              <input className="input is-small" type="number" placeholder="optional"
-                     value={form.pitch}
-                     onChange={(e) => setForm((f) => ({ ...f, pitch: e.target.value }))}
-              />
+    <input className="input is-small" type="number" placeholder="optional"
+      value={form.pitch}
+      onChange={(e) => setForm((f) => ({ ...f, pitch: e.target.value }))}
+    />
             </div>
             <div style={{ marginLeft: 'auto' }}>
               <button className="button is-primary is-small" onClick={addPoint}>Add</button>

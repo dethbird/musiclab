@@ -187,8 +187,12 @@ function App() {
         return <Chords note={note} octave={octave} />;
       }
 
+      if (activeTabConfig.id === 'pbind') {
+        return <Pbind note={note} octave={octave} selectedDegree={selectedDegree} />;
+      }
+
     return activeTabConfig.element;
-  }, [activeTab, scaleState, scalesToCompare, note, octave, selectedScaleId]);
+  }, [activeTab, scaleState, scalesToCompare, note, octave, selectedScaleId, selectedDegree]);
 
   return (
     <main className="app">
