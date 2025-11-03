@@ -86,11 +86,83 @@ function Envelope() {
   // local form state for adding a point
   const [form, setForm] = useState({ level: 1.0, time: 0.1, curve: 'linear', customCurve: 0 });
 
+  // Storage modal state
+  const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
+  const [storageText, setStorageText] = useState('');
+  const [storageError, setStorageError] = useState('');
+
+  function openStorageModal() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        try {
+          setStorageText(JSON.stringify(JSON.parse(raw), null, 2));
+        } catch (e) {
+          setStorageText(raw);
+        }
+      } else {
+        setStorageText(JSON.stringify(points, null, 2));
+      }
+    } catch (e) {
+      setStorageText(JSON.stringify(points, null, 2));
+    }
+    setStorageError('');
+    setIsStorageModalOpen(true);
+  }
+
+  function saveStorageModal() {
+    setStorageError('');
+    let parsed;
+    try {
+      parsed = JSON.parse(storageText);
+    } catch (e) {
+      setStorageError('Invalid JSON. Please fix and try again.');
+      return;
+    }
+    if (!Array.isArray(parsed)) {
+      setStorageError('JSON must be an array of points: [{ level, time, curve }, ...]');
+      return;
+    }
+    // Basic cleaning and enforce first-point rules
+    let cleaned = parsed.map((p) => ({
+      level: Number(p?.level) || 0,
+      time: Number(p?.time) || 0,
+      curve: Number(p?.curve) || 0,
+    }));
+    if (cleaned.length === 0) {
+      cleaned = [{ level: 0.0, time: 0, curve: 0 }];
+    }
+    cleaned[0] = { level: Number(cleaned[0].level) || 0, time: 0, curve: 0 };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+    } catch (e) {
+      // even if storage fails, still update in-memory points
+    }
+    setPoints(cleaned);
+    setIsStorageModalOpen(false);
+  }
+
   return (
     <section className="tool-panel">
       <div className="level">
         <div className="level-left">
           <h2 className="title is-3">Envelope</h2>
+        </div>
+        <div className="level-right">
+          <div className="level-item">
+            <button
+              type="button"
+              className="button is-small"
+              onClick={openStorageModal}
+              disabled={points.length <= 1}
+              title={points.length <= 1 ? 'Add at least one point to enable' : 'Export/Import from localStorage'}
+            >
+              <span className="icon is-small" style={{ marginRight: 6 }}>
+                <i className="fas fa-database" aria-hidden="true"></i>
+              </span>
+              <span>Export / Import</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -107,8 +179,10 @@ function Envelope() {
 
         {/* Points editor */}
         <div className="box">
-          <h3 className="title is-6">Envelope points</h3>
-          <p className="help">Add points that define the envelope. The first point starts at time 0; its time and curve are fixed at 0.</p>
+          <div>
+            <h3 className="title is-6" style={{ margin: 0 }}>Envelope points</h3>
+            <p className="help" style={{ marginTop: '0.25rem' }}>Add points that define the envelope. The first point starts at time 0; its time and curve are fixed at 0.</p>
+          </div>
 
           {/* First point (start) - level editable, time and curve disabled */}
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', marginTop: '0.5rem' }}>
@@ -336,6 +410,35 @@ function Envelope() {
                   })()}
                 </div>
               </div>
+        </div>
+      </div>
+      {/* Storage modal */}
+      <div className={`modal ${isStorageModalOpen ? 'is-active' : ''}`} role="dialog" aria-modal={isStorageModalOpen}>
+        <div className="modal-background" onClick={() => setIsStorageModalOpen(false)} />
+        <div className="modal-card" style={{ maxWidth: '900px', width: 'min(900px, 96vw)' }}>
+          <header className="modal-card-head">
+            <p className="modal-card-title">Envelope storage (local)</p>
+            <button className="delete" aria-label="close" onClick={() => setIsStorageModalOpen(false)} />
+          </header>
+          <section className="modal-card-body">
+            <div className="content">
+              <p className="help">JSON stored under <code>{STORAGE_KEY}</code>. Edit, paste, or copy it here. Save will replace the stored value and update the editor.</p>
+              <textarea
+                className="textarea"
+                rows={14}
+                style={{ fontFamily: 'monospace' }}
+                value={storageText}
+                onChange={(e) => setStorageText(e.target.value)}
+              />
+              {storageError ? (
+                <p className="has-text-danger" style={{ marginTop: '0.5rem' }}>{storageError}</p>
+              ) : null}
+            </div>
+          </section>
+          <footer className="modal-card-foot" style={{ justifyContent: 'flex-end' }}>
+            <button className="button" onClick={() => setIsStorageModalOpen(false)}>Cancel</button>
+            <button className="button is-primary" onClick={saveStorageModal}>Save</button>
+          </footer>
         </div>
       </div>
     </section>

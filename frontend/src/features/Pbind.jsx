@@ -14,6 +14,61 @@ function Pbind() {
 
   const [form, setForm] = useState({ startBeat: '0', duration: '1', repeat: 1, pitch: '' });
 
+  // Storage modal state
+  const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
+  const [storageText, setStorageText] = useState('');
+  const [storageError, setStorageError] = useState('');
+
+  function openStorageModal() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_POINTS);
+      if (raw) {
+        try {
+          setStorageText(JSON.stringify(JSON.parse(raw), null, 2));
+        } catch (e) {
+          setStorageText(raw);
+        }
+      } else {
+        setStorageText(JSON.stringify(points, null, 2));
+      }
+    } catch (e) {
+      setStorageText(JSON.stringify(points, null, 2));
+    }
+    setStorageError('');
+    setIsStorageModalOpen(true);
+  }
+
+  function saveStorageModal() {
+    setStorageError('');
+    let parsed;
+    try {
+      parsed = JSON.parse(storageText);
+    } catch (e) {
+      setStorageError('Invalid JSON. Please fix and try again.');
+      return;
+    }
+    if (!Array.isArray(parsed)) {
+      setStorageError('JSON must be an array of points: [{ startBeat, duration, repeat, pitch }, ...]');
+      return;
+    }
+    // Clean and coerce shape
+    const cleaned = parsed
+      .filter((p) => p && typeof p === 'object')
+      .map((p) => ({
+        startBeat: String(p.startBeat ?? '0'),
+        duration: String(p.duration ?? '1'),
+        repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
+        pitch: (p.pitch == null || !Number.isFinite(Number(p.pitch))) ? 60 : Number(p.pitch),
+      }));
+    try {
+      localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(cleaned));
+    } catch (e) {
+      // ignore storage failures
+    }
+    setPoints(cleaned);
+    setIsStorageModalOpen(false);
+  }
+
   function addPoint() {
     try {
       // Validate fraction-like inputs by constructing fractions (throws on invalid)
@@ -129,6 +184,22 @@ function Pbind() {
       <div className="level">
         <div className="level-left">
           <h2 className="title is-3">Pbind</h2>
+        </div>
+        <div className="level-right">
+          <div className="level-item">
+            <button
+              type="button"
+              className="button is-small"
+              onClick={openStorageModal}
+              disabled={points.length < 1}
+              title={points.length < 1 ? 'Add at least one point to enable' : 'Export/Import Pbind points'}
+            >
+              <span className="icon is-small" style={{ marginRight: 6 }}>
+                <i className="fas fa-database" aria-hidden="true"></i>
+              </span>
+              <span>Export / Import</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -337,6 +408,35 @@ function Pbind() {
             </div>
           </div>
           <pre style={{ whiteSpace: 'pre-wrap' }}>{toPbind(timeline)}</pre>
+        </div>
+      </div>
+      {/* Storage modal */}
+      <div className={`modal ${isStorageModalOpen ? 'is-active' : ''}`} role="dialog" aria-modal={isStorageModalOpen}>
+        <div className="modal-background" onClick={() => setIsStorageModalOpen(false)} />
+        <div className="modal-card" style={{ maxWidth: '900px', width: 'min(900px, 96vw)' }}>
+          <header className="modal-card-head">
+            <p className="modal-card-title">Pbind points (local storage)</p>
+            <button className="delete" aria-label="close" onClick={() => setIsStorageModalOpen(false)} />
+          </header>
+          <section className="modal-card-body">
+            <div className="content">
+              <p className="help">JSON stored under <code>{STORAGE_KEY_POINTS}</code>. Edit, paste, or copy it here. Save will replace the stored value and update the editor.</p>
+              <textarea
+                className="textarea"
+                rows={14}
+                style={{ fontFamily: 'monospace' }}
+                value={storageText}
+                onChange={(e) => setStorageText(e.target.value)}
+              />
+              {storageError ? (
+                <p className="has-text-danger" style={{ marginTop: '0.5rem' }}>{storageError}</p>
+              ) : null}
+            </div>
+          </section>
+          <footer className="modal-card-foot" style={{ justifyContent: 'flex-end' }}>
+            <button className="button" onClick={() => setIsStorageModalOpen(false)}>Cancel</button>
+            <button className="button is-primary" onClick={saveStorageModal}>Save</button>
+          </footer>
         </div>
       </div>
     </section>
