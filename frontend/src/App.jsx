@@ -119,6 +119,18 @@ function App() {
     return list.find((s) => s.id === selectedScaleId) || null;
   }, [scaleState.data, selectedScaleId]);
 
+  // When a scale is available and no degree has been chosen yet, default to the first degree
+  useEffect(() => {
+    const degrees = selectedScale && Array.isArray(selectedScale.degrees) ? selectedScale.degrees : [];
+    if (selectedDegree === '' && degrees.length > 0) {
+      setSelectedDegree(String(degrees[0]));
+    }
+    if (!selectedScale) {
+      // ensure cleared if scale is unset
+      if (selectedDegree !== '') setSelectedDegree('');
+    }
+  }, [selectedScale, selectedDegree]);
+
   useEffect(() => {
     if (scaleState.status !== 'idle') {
       return;
