@@ -188,7 +188,7 @@ function App() {
       }
 
       if (activeTabConfig.id === 'pbind') {
-        return <Pbind note={note} octave={octave} selectedDegree={selectedDegree} />;
+        return <Pbind note={note} octave={octave} selectedDegree={selectedDegree} selectedScaleId={selectedScaleId} />;
       }
 
     return activeTabConfig.element;
@@ -204,9 +204,9 @@ function App() {
           <div className="level-item">
             <div className="field is-grouped is-grouped-multiline" style={{ alignItems: 'center' }}>
               <div className="control" style={{ display: 'flex', flexDirection: 'column', marginRight: '0.5rem' }}>
-                <label htmlFor="note-select" className="label is-medium" style={{ marginBottom: '0.25rem', fontSize: '1.05rem' }}>Note</label>
+                <label htmlFor="note-select" className="label is-medium" style={{ marginBottom: '0.25rem', fontSize: '1.05rem' }}>Key</label>
                 <div className="select is-medium">
-                  <select id="note-select" value={note} aria-label="Note name" onChange={(e) => setNote(e.target.value)} style={{ fontSize: '1rem' }}>
+                  <select id="note-select" value={note} aria-label="Key name" onChange={(e) => setNote(e.target.value)} style={{ fontSize: '1rem' }}>
                       <option value="C">C</option>
                       <option value="C#">C#</option>
                       <option value="D">D</option>

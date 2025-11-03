@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Fr, toNumber } from '../lib/fraction.js';
 import { buildTimeline, toPbind, fracToScLiteral } from './pbind/buildTimeline.js';
 
-function Pbind({ note = 'C', octave = '4', selectedDegree = '' }) {
+function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId = '' }) {
   const STORAGE_KEY_POINTS = 'musiclab:pbind:points';
   const STORAGE_KEY_SETTINGS = 'musiclab:pbind:settings';
   const STORAGE_KEY_FORM = 'musiclab:pbind:form';
@@ -446,7 +446,18 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '' }) {
               ]
             </div>
           </div>
-          <pre style={{ whiteSpace: 'pre-wrap' }}>{toPbind(timeline)}</pre>
+          <pre style={{ whiteSpace: 'pre-wrap' }}>
+            {(() => {
+              const p = toPbind(timeline);
+              const scaleName = selectedScaleId ? selectedScaleId : 'none';
+              const scaleLine = `  \\scale, Scale.${scaleName},\n`;
+              if (typeof p === 'string' && p.startsWith('Pbind(\n')) {
+                return p.replace('Pbind(\n', `Pbind(\n${scaleLine}`);
+              }
+              // fallback: just prefix
+              return `Pbind(\n${scaleLine}${p}`;
+            })()}
+          </pre>
         </div>
       </div>
       {/* Storage modal */}
