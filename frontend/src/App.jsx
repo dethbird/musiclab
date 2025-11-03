@@ -85,6 +85,13 @@ function App() {
       // ignore
     }
   }, [selectedScaleId]);
+  // selected degree (not persisted); cleared when scale changes
+  const [selectedDegree, setSelectedDegree] = useState('');
+  useEffect(() => {
+    // clear degree selection whenever the scale changes
+    setSelectedDegree('');
+  }, [selectedScaleId]);
+
   const [scaleState, setScaleState] = useState({ status: 'idle', data: null, error: null });
   const [scalesToCompare, setScalesToCompare] = useState(() => {
     try {
@@ -105,6 +112,12 @@ function App() {
       // ignore storage errors
     }
   }, [scalesToCompare]);
+
+  // derive selected scale object from fetched catalog (after scaleState is defined)
+  const selectedScale = useMemo(() => {
+    const list = Array.isArray(scaleState.data) ? scaleState.data : [];
+    return list.find((s) => s.id === selectedScaleId) || null;
+  }, [scaleState.data, selectedScaleId]);
 
   useEffect(() => {
     if (scaleState.status !== 'idle') {
@@ -223,6 +236,37 @@ function App() {
                     {Array.isArray(scaleState.data) ? scaleState.data.map((s) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     )) : null}
+                  </select>
+                </div>
+              </div>
+              <div className="control" style={{ display: 'flex', flexDirection: 'column', marginLeft: '0.5rem' }}>
+                <label htmlFor="degree-select-header" className="label is-medium" style={{ marginBottom: '0.25rem', fontSize: '1.05rem' }}>Degrees</label>
+                <div className="select is-medium">
+                  <select
+                    id="degree-select-header"
+                    value={selectedDegree}
+                    aria-label="Selected degree"
+                    onChange={(e) => setSelectedDegree(e.target.value)}
+                    disabled={!selectedScale || !Array.isArray(selectedScale.degrees) || selectedScale.degrees.length === 0}
+                    style={{ fontSize: '1rem', minWidth: '160px' }}
+                  >
+                    <option value="">— degree —</option>
+                    {selectedScale && Array.isArray(selectedScale.degrees)
+                      ? selectedScale.degrees.map((d) => {
+                          // compute absolute note label for this degree based on current note+octave
+                          const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+                          const baseIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+                          const total = baseIdx + Number(d);
+                          const name = NOTE_NAMES[((total % 12) + 12) % 12];
+                          const octaveOffset = Math.floor(total / 12);
+                          const baseOct = Number.isFinite(Number(octave)) ? Number(octave) : 0;
+                          const displayOct = baseOct + octaveOffset;
+                          const label = `${d}) ${name}${displayOct}`;
+                          return (
+                            <option key={d} value={String(d)}>{label}</option>
+                          );
+                        })
+                      : null}
                   </select>
                 </div>
               </div>
