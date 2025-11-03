@@ -75,6 +75,8 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '' }) {
         duration: String(p.duration ?? '1'),
         repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
         pitch: (p.pitch == null || !Number.isFinite(Number(p.pitch))) ? 60 : Number(p.pitch),
+        degree: Number.isFinite(Number(p.degree)) ? Number(p.degree) : null,
+        octave: Number.isFinite(Number(p.octave)) ? Number(p.octave) : null,
       }));
     try {
       localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(cleaned));
@@ -94,15 +96,18 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '' }) {
       window.alert('Please enter valid startBeat and duration (e.g., 1, 0.5, 1/3)');
       return;
     }
-    const repeat = Math.max(1, Number(form.repeat) | 0);
-    const pitchVal = form.pitch === '' ? 60 : Number(form.pitch);
+  const repeat = Math.max(1, Number(form.repeat) | 0);
+  const pitchVal = form.pitch === '' ? 60 : Number(form.pitch);
+  const sd = Number(selectedDegree);
+  const degreeVal = Number.isFinite(sd) ? sd : null;
+  const baseOct = Number.isFinite(Number(octave)) ? Number(octave) : null;
     if (form.pitch !== '' && !Number.isFinite(pitchVal)) {
       window.alert('Midinote must be a number or left blank');
       return;
     }
     setPoints((prev) => [
       ...prev,
-      { startBeat: form.startBeat, duration: form.duration, repeat, pitch: pitchVal },
+      { startBeat: form.startBeat, duration: form.duration, repeat, pitch: pitchVal, degree: degreeVal, octave: baseOct },
     ]);
   }
 
@@ -125,6 +130,8 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '' }) {
               duration: String(p.duration ?? '1'),
               repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
               pitch: (p.pitch == null || !Number.isFinite(Number(p.pitch))) ? 60 : Number(p.pitch),
+              degree: Number.isFinite(Number(p.degree)) ? Number(p.degree) : null,
+              octave: Number.isFinite(Number(p.octave)) ? Number(p.octave) : null,
             }));
           setPoints(cleaned);
         }
@@ -378,6 +385,8 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '' }) {
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Duration</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Repeat</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Midinote</th>
+                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Degree</th>
+                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Octave</th>
                   <th></th>
                 </tr>
               </thead>
@@ -401,6 +410,8 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '' }) {
                       <td style={{ padding: '0.25rem' }}>{String(p.duration)}</td>
                       <td style={{ padding: '0.25rem' }}>{String(p.repeat)}</td>
                       <td style={{ padding: '0.25rem' }}>{p.pitch == null ? '—' : String(p.pitch)}</td>
+                      <td style={{ padding: '0.25rem' }}>{p.degree == null ? '—' : String(p.degree)}</td>
+                      <td style={{ padding: '0.25rem' }}>{p.octave == null ? '—' : String(p.octave)}</td>
                       <td style={{ padding: '0.25rem' }}>
                         <button className="button is-small is-danger" onClick={() => removePoint(idx)}>Remove</button>
                       </td>
