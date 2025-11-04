@@ -93,6 +93,13 @@ $app->get('/', function (ServerRequestInterface $request, ResponseInterface $res
 		$preloadTags .= '<link rel="modulepreload" href="' . htmlspecialchars($href, ENT_QUOTES) . '">';
 	}
 
+	// Favicon links (look for files in the public assets folder)
+	$faviconTags = '';
+	$faviconTags .= '<link rel="icon" href="' . rtrim($assetBaseUri, '/') . '/favicon.ico">';
+	$faviconTags .= '<link rel="icon" type="image/png" sizes="192x192" href="' . rtrim($assetBaseUri, '/') . '/favicon-192.png">';
+	$faviconTags .= '<link rel="icon" type="image/png" href="' . rtrim($assetBaseUri, '/') . '/favicon.png">';
+	$faviconTags .= '<link rel="apple-touch-icon" href="' . rtrim($assetBaseUri, '/') . '/apple-touch-icon.png">';
+
 	$styleTags = '';
 	foreach ($assets['styles'] as $href) {
 		$styleTags .= '<link rel="stylesheet" href="' . htmlspecialchars($href, ENT_QUOTES) . '">';
@@ -117,6 +124,7 @@ $app->get('/', function (ServerRequestInterface $request, ResponseInterface $res
 		. '<meta charset="utf-8">'
 		. '<meta name="viewport" content="width=device-width, initial-scale=1">'
 		. '<title>MusicLab</title>'
+		. $faviconTags
 		. $preloadTags
 		. $styleTags
 		. '</head>'
