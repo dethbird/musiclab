@@ -23,7 +23,9 @@ export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars 
     const repeat = Math.max(1, Number(p.repeat || 1) | 0);
     for (let i = 0; i < repeat; i++) {
       const offset = mul(dur, Fr(i, 1));
-      expanded.push({ start: add(start, offset), dur, degree: p.degree ?? null, octave: p.octave ?? null, scale: p.scale ?? null, root: p.root ?? null });
+      // normalize scale: treat 'none' or falsy as null to allow SC 'nil' emission later
+      const normScale = (p.scale && p.scale !== 'none') ? p.scale : null;
+      expanded.push({ start: add(start, offset), dur, degree: p.degree ?? null, octave: p.octave ?? null, scale: normScale, root: p.root ?? null });
     }
   }
 
@@ -79,11 +81,16 @@ export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars 
     degrees.push(c.rest ? restMarker() : (c.degree == null ? null : c.degree));
     octaves.push(c.rest ? restMarker() : (c.octave == null ? null : c.octave));
 
-    // For root/scale, propagate last seen value through rests so the pattern remains defined
+    // For root, propagate last seen value through rests so the pattern remains defined
     if (!c.rest && c.root != null) lastRoot = c.root;
-    if (!c.rest && c.scale != null) lastScale = c.scale;
     roots.push(lastRoot == null ? 0 : lastRoot);
-    scales.push(lastScale == null ? 'none' : lastScale);
+    // For scale: behave like degree/octave — use Rest() on rest chunks; on note chunks use explicit scale or null
+    if (c.rest) {
+      scales.push(restMarker());
+    } else {
+      lastScale = (c.scale == null ? null : c.scale);
+      scales.push(lastScale);
+    }
   }
 
   return { chunks, durs, dursFr, degrees, octaves, roots, scales, totalBeats: toNumber(total) };
@@ -154,7 +161,7 @@ export function toPbind({ durs, dursFr, degrees, octaves, roots, scales }, optio
     : '';
 
   const scaleItems = Array.isArray(scales)
-    ? scales.map((v) => `Scale.${v == null ? 'none' : String(v)}`)
+    ? scales.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : `Scale.${String(v)}`)))
     : [];
   const scaleLit = scaleItems.length > 0
     ? (compress ? compressWithPn(scaleItems, (s) => s).join(', ') : scaleItems.join(', '))
@@ -167,5 +174,5 @@ export function toPbind({ durs, dursFr, degrees, octaves, roots, scales }, optio
     ? (compress ? compressWithPn(durItems, (s) => s).join(', ') : durItems.join(', '))
     : '';
 
-  return `Pbind(\n  \\scale, Pseq([${scaleLit}], 1),\n  \\root,  Pseq([${rootLit}], 1),\n  \\octave, Pseq([${octaveLit}], 1),\n  \\degree, Pseq([${degreeLit}], 1),\n  \\dur,  Pseq([${durLit}], 1)\n)`;
+  return `(\nPbind(\n  \\scale, Pseq([${scaleLit}], 1),\n  \\root,  Pseq([${rootLit}], 1),\n  \\octave, Pseq([${octaveLit}], 1),\n  \\degree, Pseq([${degreeLit}], 1),\n  \\dur,  Pseq([${durLit}], 1)\n).play\n)`;
 }
