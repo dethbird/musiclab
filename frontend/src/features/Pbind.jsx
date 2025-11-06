@@ -19,6 +19,7 @@ function Pbind({
   const STORAGE_KEY_POINTS = 'musiclab:pbind:points';
   const STORAGE_KEY_SETTINGS = 'musiclab:pbind:settings';
   const STORAGE_KEY_FORM = 'musiclab:pbind:form';
+  const STORAGE_KEY_PREVIEW = 'musiclab:pbind:previewOptions';
   const [beatsPerBar, setBeatsPerBar] = useState(4);
   const [beatUnit, setBeatUnit] = useState(4);
   const [bars, setBars] = useState(1);
@@ -30,6 +31,7 @@ function Pbind({
   // Output preferences
   const [compressOutput, setCompressOutput] = useState(true);
   const [loopCount, setLoopCount] = useState(''); // blank => inf
+  const [instrument, setInstrument] = useState(''); // blank => \\default (handled in toPbind)
 
   // No midinote: we store degree & octave per point, while scale/root are provided by global state
 
@@ -207,12 +209,37 @@ function Pbind({
     } catch {}
   }, [form]);
 
+  // Load preview options on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_PREVIEW);
+      if (raw) {
+        const o = JSON.parse(raw);
+        if (o && typeof o === 'object') {
+          if (typeof o.compressOutput === 'boolean') setCompressOutput(o.compressOutput);
+          if (Object.prototype.hasOwnProperty.call(o, 'loopCount')) setLoopCount(String(o.loopCount ?? ''));
+          if (typeof o.instrument === 'string') setInstrument(o.instrument);
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Persist preview options on change
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY_PREVIEW,
+        JSON.stringify({ compressOutput, loopCount, instrument })
+      );
+    } catch {}
+  }, [compressOutput, loopCount, instrument]);
+
   const timeline = useMemo(() => {
     return buildTimeline({ timeSig: { beatsPerBar, beatUnit }, bars, points });
   }, [beatsPerBar, beatUnit, bars, points]);
   const preview = useMemo(() => {
-    return toPbind(timeline, { compress: compressOutput, loopCount: loopCount });
-  }, [timeline, compressOutput, loopCount]);
+    return toPbind(timeline, { compress: compressOutput, loopCount: loopCount, instrument });
+  }, [timeline, compressOutput, loopCount, instrument]);
   return (
     <section className="tool-panel">
       <div className="level">
@@ -591,8 +618,9 @@ function Pbind({
               ]
             </div>
           </div>
-          <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <label className="checkbox" style={{ display: 'flex', alignItems: 'center' }}>
+          {/* Compress on its own line */}
+          <div style={{ marginBottom: '0.5rem' }}>
+            <label className="checkbox" style={{ display: 'inline-flex', alignItems: 'center' }}>
               <input
                 type="checkbox"
                 checked={compressOutput}
@@ -601,6 +629,21 @@ function Pbind({
               />
               Compress output with Pn()
             </label>
+          </div>
+          {/* Instrument and loop count on the next row */}
+          <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <label htmlFor="instrument" className="label is-small" style={{ margin: 0 }}>Instrument</label>
+              <input
+                id="instrument"
+                className="input is-small"
+                type="text"
+                placeholder="default or pmGrowl"
+                value={instrument}
+                onChange={(e) => setInstrument(e.target.value)}
+                style={{ width: '12rem' }}
+              />
+            </div>
             <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <label htmlFor="loop-count" className="label is-small" style={{ margin: 0 }}>Loop count</label>
               <input
