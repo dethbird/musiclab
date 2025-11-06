@@ -137,7 +137,10 @@ function compressWithPn(list, formatItem = (v) => String(v)) {
 }
 
 export function toPbind({ durs, dursFr, degrees, octaves, roots, scales }, options = {}) {
-  const { compress = true } = options;
+  const { compress = true, loopCount = null } = options;
+  const repeatsLit = (Number.isFinite(Number(loopCount)) && Number(loopCount) > 0)
+    ? String(Math.floor(Number(loopCount)))
+    : 'inf';
 
   const octaveItems = Array.isArray(octaves)
     ? octaves.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : String(v))))
@@ -174,5 +177,5 @@ export function toPbind({ durs, dursFr, degrees, octaves, roots, scales }, optio
     ? (compress ? compressWithPn(durItems, (s) => s).join(', ') : durItems.join(', '))
     : '';
 
-  return `(\nPbind(\n  \\scale, Pseq([${scaleLit}], 1),\n  \\root,  Pseq([${rootLit}], 1),\n  \\octave, Pseq([${octaveLit}], 1),\n  \\degree, Pseq([${degreeLit}], 1),\n  \\dur,  Pseq([${durLit}], 1)\n).play\n)`;
+  return `(\nPbind(\n  \\scale, Pseq([${scaleLit}], ${repeatsLit}),\n  \\root,  Pseq([${rootLit}], ${repeatsLit}),\n  \\octave, Pseq([${octaveLit}], ${repeatsLit}),\n  \\degree, Pseq([${degreeLit}], ${repeatsLit}),\n  \\dur,  Pseq([${durLit}], ${repeatsLit})\n).play\n)`;
 }

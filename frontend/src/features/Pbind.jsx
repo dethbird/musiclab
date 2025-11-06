@@ -29,6 +29,7 @@ function Pbind({
 
   // Output preferences
   const [compressOutput, setCompressOutput] = useState(true);
+  const [loopCount, setLoopCount] = useState(''); // blank => inf
 
   // No midinote: we store degree & octave per point, while scale/root are provided by global state
 
@@ -205,6 +206,9 @@ function Pbind({
   const timeline = useMemo(() => {
     return buildTimeline({ timeSig: { beatsPerBar, beatUnit }, bars, points });
   }, [beatsPerBar, beatUnit, bars, points]);
+  const preview = useMemo(() => {
+    return toPbind(timeline, { compress: compressOutput, loopCount: loopCount });
+  }, [timeline, compressOutput, loopCount]);
   return (
     <section className="tool-panel">
       <div className="level">
@@ -570,8 +574,8 @@ function Pbind({
               ]
             </div>
           </div>
-          <div style={{ marginBottom: '0.5rem' }}>
-            <label className="checkbox">
+          <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <label className="checkbox" style={{ display: 'flex', alignItems: 'center' }}>
               <input
                 type="checkbox"
                 checked={compressOutput}
@@ -580,14 +584,29 @@ function Pbind({
               />
               Compress output with Pn()
             </label>
+            <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <label htmlFor="loop-count" className="label is-small" style={{ margin: 0 }}>Loop count</label>
+              <input
+                id="loop-count"
+                className="input is-small"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="inf"
+                value={loopCount}
+                onChange={(e) => setLoopCount(e.target.value)}
+                style={{ width: '6rem' }}
+              />
+            </div>
           </div>
-          <pre style={{ whiteSpace: 'pre-wrap' }}>
-            {(() => {
-              // Now toPbind already emits \scale and \root as Pseqs so no injection is needed
-              const p = toPbind(timeline, { compress: compressOutput });
-              return p;
-            })()}
-          </pre>
+          <textarea
+            className="textarea"
+            rows={Math.max(8, Math.min(20, (preview.match(/\n/g)?.length || 0) + 2))}
+            style={{ fontFamily: 'monospace' }}
+            readOnly
+            value={preview}
+            onFocus={(e) => e.target.select()}
+          />
         </div>
       </div>
       {/* Storage modal */}
