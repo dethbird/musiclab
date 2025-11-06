@@ -12,23 +12,9 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
 
   const [points, setPoints] = useState([]);
 
-  const [form, setForm] = useState({ startBeat: '0', duration: '1', repeat: 1, pitch: '' });
+  const [form, setForm] = useState({ startBeat: '0', duration: '1', repeat: 1 });
 
-  // Drive pitch by main app's selectedDegree, note, and octave
-  useEffect(() => {
-    const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
-    const baseIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
-    const baseOct = Number.isFinite(Number(octave)) ? Number(octave) : 0;
-    const sd = Number(selectedDegree);
-    if (!Number.isFinite(sd)) {
-      // if no valid degree, do not force a pitch value
-      return;
-    }
-    const rootMidi = (baseOct + 1) * 12 + baseIdx; // C0 = 12
-    const midi = rootMidi + sd;
-    const midiStr = String(midi);
-    setForm((f) => (f.pitch === midiStr ? f : { ...f, pitch: midiStr }));
-  }, [note, octave, selectedDegree]);
+  // No midinote: we store degree & octave per point, while scale/root are provided by global state
 
   // Storage modal state
   const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
@@ -68,15 +54,19 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
       return;
     }
     // Clean and coerce shape
+    const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+    const rootIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+    const currentScale = selectedScaleId || 'none';
     const cleaned = parsed
       .filter((p) => p && typeof p === 'object')
       .map((p) => ({
         startBeat: String(p.startBeat ?? '0'),
         duration: String(p.duration ?? '1'),
         repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
-        pitch: (p.pitch == null || !Number.isFinite(Number(p.pitch))) ? 60 : Number(p.pitch),
-        degree: Number.isFinite(Number(p.degree)) ? Number(p.degree) : null,
-        octave: Number.isFinite(Number(p.octave)) ? Number(p.octave) : null,
+        scale: typeof p.scale === 'string' ? p.scale : currentScale,
+        root: Number.isFinite(Number(p.root)) ? Number(p.root) : rootIdx,
+        degree: Number.isFinite(Number(p.degree)) ? Number(p.degree) : (Number.isFinite(Number(selectedDegree)) ? Number(selectedDegree) : null),
+        octave: Number.isFinite(Number(p.octave)) ? Number(p.octave) : (Number.isFinite(Number(octave)) ? Number(octave) : null),
       }));
     try {
       localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(cleaned));
@@ -97,17 +87,15 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
       return;
     }
   const repeat = Math.max(1, Number(form.repeat) | 0);
-  const pitchVal = form.pitch === '' ? 60 : Number(form.pitch);
   const sd = Number(selectedDegree);
   const degreeVal = Number.isFinite(sd) ? sd : null;
   const baseOct = Number.isFinite(Number(octave)) ? Number(octave) : null;
-    if (form.pitch !== '' && !Number.isFinite(pitchVal)) {
-      window.alert('Midinote must be a number or left blank');
-      return;
-    }
+  const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+  const rootIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+  const scaleId = selectedScaleId || 'none';
     setPoints((prev) => [
       ...prev,
-      { startBeat: form.startBeat, duration: form.duration, repeat, pitch: pitchVal, degree: degreeVal, octave: baseOct },
+      { startBeat: form.startBeat, duration: form.duration, repeat, scale: scaleId, root: rootIdx, degree: degreeVal, octave: baseOct },
     ]);
   }
 
@@ -129,9 +117,10 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
               startBeat: String(p.startBeat ?? '0'),
               duration: String(p.duration ?? '1'),
               repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
-              pitch: (p.pitch == null || !Number.isFinite(Number(p.pitch))) ? 60 : Number(p.pitch),
-              degree: Number.isFinite(Number(p.degree)) ? Number(p.degree) : null,
-              octave: Number.isFinite(Number(p.octave)) ? Number(p.octave) : null,
+              scale: typeof p.scale === 'string' ? p.scale : (selectedScaleId || 'none'),
+              root: Number.isFinite(Number(p.root)) ? Number(p.root) : (['C','C#','D','E♭','E','F','F#','G','G#','A','B♭','B'].indexOf(note) >= 0 ? ['C','C#','D','E♭','E','F','F#','G','G#','A','B♭','B'].indexOf(note) : 0),
+              degree: Number.isFinite(Number(p.degree)) ? Number(p.degree) : (Number.isFinite(Number(selectedDegree)) ? Number(selectedDegree) : null),
+              octave: Number.isFinite(Number(p.octave)) ? Number(p.octave) : (Number.isFinite(Number(octave)) ? Number(octave) : null),
             }));
           setPoints(cleaned);
         }
@@ -164,8 +153,6 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
             startBeat: String(f.startBeat ?? '0'),
             duration: String(f.duration ?? '1'),
             repeat: Math.max(1, Number(f.repeat ?? 1) | 0),
-            // keep pitch as string to reflect user input; allow ''
-            pitch: f.pitch === '' || f.pitch == null ? '' : String(f.pitch),
           });
         }
       }
@@ -262,15 +249,16 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
                 let noteCount = 0;
                 return timeline.chunks.map((c, idx) => {
                   const widthPct = (timeline.durs[idx] / (timeline.totalBeats || 1)) * 100;
-                  const isNote = !c.rest && Number.isFinite(c.pitch);
-                  const hue = isNote ? ((Math.round(c.pitch) % 12) * 30) : 0;
+                  const isNote = !c.rest && (c.degree != null);
+                  const degForHue = Number.isFinite(Number(c.degree)) ? Number(c.degree) : 0;
+                  const hue = isNote ? ((Math.round(degForHue) % 12) * 30) : 0;
                   const bg = isNote ? `hsl(${hue}, 70%, 60%)` : '#dcdcdc';
                   const showLabel = isNote && widthPct >= 6;
                   const label = isNote ? String(++noteCount) : '';
                   return (
                     <div
                       key={idx}
-                      title={isNote ? `note #${noteCount} (midinote ${c.pitch}), dur: ${String(c.dur)}` : `rest, dur: ${String(c.dur)}`}
+                      title={isNote ? `note #${noteCount} (degree ${c.degree}${c.octave != null ? ` @ octave ${c.octave}` : ''}), dur: ${String(c.dur)}` : `rest, dur: ${String(c.dur)}`}
                       style={{
                         position: 'relative',
                         width: `${widthPct}%`,
@@ -358,13 +346,7 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
                      onChange={(e) => setForm((f) => ({ ...f, repeat: Math.max(1, Number(e.target.value) | 0) }))}
               />
             </div>
-            <div>
-    <label className="label is-small">Midinote</label>
-    <input className="input is-small" type="number" placeholder="optional"
-      value={form.pitch}
-      onChange={(e) => setForm((f) => ({ ...f, pitch: e.target.value }))}
-    />
-            </div>
+            {/* Midinote removed: sound is driven by scale, root, degree, octave */}
             <div style={{ marginLeft: 'auto' }}>
               <button className="button is-primary is-small" onClick={addPoint}>Add</button>
             </div>
@@ -383,10 +365,9 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>#</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Start</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Duration</th>
-                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Repeat</th>
-                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Midinote</th>
-                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Degree</th>
+                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Scale</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Octave</th>
+                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Degree</th>
                   <th></th>
                 </tr>
               </thead>
@@ -407,23 +388,41 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
                     <tr key={`${idx}-${String(p.startBeat)}-${String(p.duration)}`}>
                       <td style={{ padding: '0.25rem' }}>{row}</td>
                       <td style={{ padding: '0.25rem' }}>{String(p.startBeat)}</td>
-                      <td style={{ padding: '0.25rem' }}>{String(p.duration)}</td>
-                      <td style={{ padding: '0.25rem' }}>{String(p.repeat)}</td>
                       <td style={{ padding: '0.25rem' }}>
-                        {p.pitch == null ? '—' : (
-                          (() => {
-                            const midi = Number(p.pitch);
-                            if (!Number.isFinite(midi)) return String(p.pitch);
-                            const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
-                            const idx = ((midi % 12) + 12) % 12;
-                            const name = NOTE_NAMES[idx] || 'C';
-                            const oct = Math.floor(midi / 12) - 1;
-                            return `${midi} (${name}${oct})`;
-                          })()
-                        )}
+                        {(() => {
+                          const dur = String(p.duration);
+                          const rep = Math.max(1, Number(p.repeat) | 0);
+                          return rep > 1 ? `${dur} x ${rep}` : dur;
+                        })()}
                       </td>
-                      <td style={{ padding: '0.25rem' }}>{p.degree == null ? '—' : String(p.degree)}</td>
+                      <td style={{ padding: '0.25rem' }}>
+                        {(() => {
+                          const ROOT_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+                          if (!Number.isFinite(Number(p.root))) return p.scale || '—';
+                          const r = Number(p.root) % 12;
+                          const name = ROOT_NAMES[(r + 12) % 12];
+                          const scaleLabel = p.scale || '—';
+                          return `${name}(${r}) ${scaleLabel}`;
+                        })()}
+                      </td>
                       <td style={{ padding: '0.25rem' }}>{p.octave == null ? '—' : String(p.octave)}</td>
+                      <td style={{ padding: '0.25rem' }}>
+                        {(() => {
+                          if (p.degree == null) return '—';
+                          const deg = Number(p.degree);
+                          if (!Number.isFinite(deg)) return String(p.degree);
+                          const rootVal = Number(p.root);
+                          const octVal = Number(p.octave);
+                          if (!Number.isFinite(rootVal) || !Number.isFinite(octVal)) return String(deg);
+                          const safeRoot = ((rootVal % 12) + 12) % 12;
+                          const midi = (octVal + 1) * 12 + safeRoot + deg;
+                          if (!Number.isFinite(midi)) return String(deg);
+                          const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+                          const nName = NOTE_NAMES[((midi % 12) + 12) % 12] || 'C';
+                          const nOct = Math.floor(midi / 12) - 1;
+                          return `${deg} - ${nName}${nOct} (${midi})`;
+                        })()}
+                      </td>
                       <td style={{ padding: '0.25rem' }}>
                         <button className="button is-small is-danger" onClick={() => removePoint(idx)}>Remove</button>
                       </td>
@@ -453,7 +452,8 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
               // Map note prop to a 0-11 tonic for \root (Key dropdown maps to 0..11)
               const NOTE_NAMES_PREVIEW = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
               const rootIdx = NOTE_NAMES_PREVIEW.indexOf(note) >= 0 ? NOTE_NAMES_PREVIEW.indexOf(note) : 0;
-              const rootLine = `  \\root, ${rootIdx},\n`;
+              const rootName = NOTE_NAMES_PREVIEW[rootIdx] || 'C';
+              const rootLine = `  \\root, ${rootIdx}, // ${rootName}\n`;
               const scaleLine = `  \\scale, Scale.${scaleName},\n`;
 
               if (typeof p === 'string' && p.startsWith('Pbind(\n')) {

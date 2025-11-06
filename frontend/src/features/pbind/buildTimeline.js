@@ -23,7 +23,7 @@ export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars 
     const repeat = Math.max(1, Number(p.repeat || 1) | 0);
     for (let i = 0; i < repeat; i++) {
       const offset = mul(dur, Fr(i, 1));
-      expanded.push({ start: add(start, offset), dur, pitch: p.pitch, degree: p.degree ?? null, octave: p.octave ?? null });
+      expanded.push({ start: add(start, offset), dur, degree: p.degree ?? null, octave: p.octave ?? null, scale: p.scale ?? null, root: p.root ?? null });
     }
   }
 
@@ -55,7 +55,7 @@ export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars 
     const clipEnd = lt(total, hardEnd) ? total : hardEnd;
     if (lt(t, clipEnd)) {
       const playDur = sub(clipEnd, t);
-      chunks.push({ rest: false, dur: playDur, pitch: ev.pitch, degree: ev.degree ?? null, octave: ev.octave ?? null });
+      chunks.push({ rest: false, dur: playDur, degree: ev.degree ?? null, octave: ev.octave ?? null, scale: ev.scale ?? null, root: ev.root ?? null });
       t = clipEnd;
     }
     if (!lt(t, total)) break;
@@ -68,10 +68,9 @@ export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars 
 
   const dursFr = chunks.map((c) => c.dur);
   const durs = dursFr.map((f) => toNumber(f));
-  const midis = chunks.map((c) => (c.rest ? restMarker() : c.pitch));
   const degrees = chunks.map((c) => (c.rest ? restMarker() : (c.degree == null ? null : c.degree)));
   const octaves = chunks.map((c) => (c.rest ? restMarker() : (c.octave == null ? null : c.octave)));
-  return { chunks, durs, dursFr, midis, degrees, octaves, totalBeats: toNumber(total) };
+  return { chunks, durs, dursFr, degrees, octaves, totalBeats: toNumber(total) };
 }
 
 export function fracToScLiteral(fr) {
@@ -93,11 +92,7 @@ export function fracToScLiteral(fr) {
   return String(fr);
 }
 
-export function toPbind({ durs, dursFr, midis, degrees, octaves }) {
-  const pitchLit = Array.isArray(midis)
-    ? midis.map((v) => (v && v.__rest ? 'Rest()' : (v ?? 'Rest()'))).join(', ')
-    : '';
-
+export function toPbind({ durs, dursFr, degrees, octaves }) {
   const octaveLit = Array.isArray(octaves)
     ? octaves.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : String(v)))).join(', ')
     : '';
@@ -110,5 +105,5 @@ export function toPbind({ durs, dursFr, midis, degrees, octaves }) {
     ? dursFr.map((f) => fracToScLiteral(f)).join(', ')
     : durs.map((n) => +Number(n).toFixed(6)).join(', ');
 
-  return `Pbind(\n  \\midinote, Pseq([${pitchLit}], 1),\n  \\octave, Pseq([${octaveLit}], 1),\n  \\degree, Pseq([${degreeLit}], 1),\n  \\dur,  Pseq([${durLit}], 1)\n)`;
+  return `Pbind(\n  \\octave, Pseq([${octaveLit}], 1),\n  \\degree, Pseq([${degreeLit}], 1),\n  \\dur,  Pseq([${durLit}], 1)\n)`;
 }
