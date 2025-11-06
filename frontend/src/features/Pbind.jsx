@@ -572,11 +572,7 @@ function Pbind({
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>#</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Start</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Duration</th>
-                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Legato</th>
-                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Amp</th>
-                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Scale</th>
-                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Octave</th>
-                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Deg / Note (MIDI)</th>
+                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Notes</th>
                   <th></th>
                 </tr>
               </thead>
@@ -604,45 +600,59 @@ function Pbind({
                           return rep > 1 ? `${dur} x ${rep}` : dur;
                         })()}
                       </td>
-                      <td style={{ padding: '0.25rem' }}>{(() => {
-                        const n = Array.isArray(p.notes) && p.notes[0] ? p.notes[0] : {};
-                        return n.legato == null ? '1' : String(n.legato);
-                      })()}</td>
-                      <td style={{ padding: '0.25rem' }}>{(() => {
-                        const n = Array.isArray(p.notes) && p.notes[0] ? p.notes[0] : {};
-                        return n.amp == null ? '1' : String(n.amp);
-                      })()}</td>
                       <td style={{ padding: '0.25rem' }}>
                         {(() => {
                           const ROOT_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
-                          const n = Array.isArray(p.notes) && p.notes[0] ? p.notes[0] : {};
-                          if (!Number.isFinite(Number(n.root))) return n.scale || '—';
-                          const r = Number(n.root) % 12;
-                          const name = ROOT_NAMES[(r + 12) % 12];
-                          const scaleLabel = n.scale || '—';
-                          return `${name}(${r}) ${scaleLabel}`;
-                        })()}
-                      </td>
-                      <td style={{ padding: '0.25rem' }}>{(() => {
-                        const n = Array.isArray(p.notes) && p.notes[0] ? p.notes[0] : {};
-                        return n.octave == null ? '—' : String(n.octave);
-                      })()}</td>
-                      <td style={{ padding: '0.25rem' }}>
-                        {(() => {
-                          const n = Array.isArray(p.notes) && p.notes[0] ? p.notes[0] : {};
-                          if (n.degree == null) return '—';
-                          const deg = Number(n.degree);
-                          if (!Number.isFinite(deg)) return String(p.degree);
-                          const rootVal = Number(n.root);
-                          const octVal = Number(n.octave);
-                          if (!Number.isFinite(rootVal) || !Number.isFinite(octVal)) return String(deg);
-                          const safeRoot = ((rootVal % 12) + 12) % 12;
-                          const midi = (octVal + 1) * 12 + safeRoot + deg;
-                          if (!Number.isFinite(midi)) return String(deg);
-                          const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
-                          const nName = NOTE_NAMES[((midi % 12) + 12) % 12] || 'C';
-                          const nOct = Math.floor(midi / 12) - 1;
-                          return `${deg} - ${nName}${nOct} (${midi})`;
+                          const notesArr = Array.isArray(p.notes) ? p.notes : [];
+                          return (
+                            <table className="table is-striped is-narrow is-fullwidth is-hoverable" style={{ margin: 0 }}>
+                              <thead>
+                                <tr>
+                                  <th style={{ padding: '0.25rem' }}>Scale</th>
+                                  <th style={{ padding: '0.25rem' }}>Root</th>
+                                  <th style={{ padding: '0.25rem' }}>Octave</th>
+                                  <th style={{ padding: '0.25rem' }}>Degree</th>
+                                  <th style={{ padding: '0.25rem' }}>Legato</th>
+                                  <th style={{ padding: '0.25rem' }}>Amp</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(notesArr.length > 0 ? notesArr : [null]).map((n, i) => {
+                                  if (!n) {
+                                    return (
+                                      <tr key={`empty-${i}`}>
+                                        <td style={{ padding: '0.25rem' }}>—</td>
+                                        <td style={{ padding: '0.25rem' }}>—</td>
+                                        <td style={{ padding: '0.25rem' }}>—</td>
+                                        <td style={{ padding: '0.25rem' }}>—</td>
+                                        <td style={{ padding: '0.25rem' }}>—</td>
+                                        <td style={{ padding: '0.25rem' }}>—</td>
+                                      </tr>
+                                    );
+                                  }
+                                  const scaleLabel = n.scale || '—';
+                                  const rNum = Number(n.root);
+                                  const rValid = Number.isFinite(rNum);
+                                  const rIdx = rValid ? ((rNum % 12) + 12) % 12 : null;
+                                  const rName = rValid ? ROOT_NAMES[rIdx] : '—';
+                                  const octaveLabel = n.octave == null ? '—' : String(n.octave);
+                                  const degreeLabel = n.degree == null ? '—' : String(n.degree);
+                                  const legatoLabel = n.legato == null ? '1' : String(n.legato);
+                                  const ampLabel = n.amp == null ? '1' : String(n.amp);
+                                  return (
+                                    <tr key={`note-${i}`}>
+                                      <td style={{ padding: '0.25rem' }}>{scaleLabel}</td>
+                                      <td style={{ padding: '0.25rem' }}>{rValid ? `${rName} (${rIdx})` : '—'}</td>
+                                      <td style={{ padding: '0.25rem' }}>{octaveLabel}</td>
+                                      <td style={{ padding: '0.25rem' }}>{degreeLabel}</td>
+                                      <td style={{ padding: '0.25rem' }}>{legatoLabel}</td>
+                                      <td style={{ padding: '0.25rem' }}>{ampLabel}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          );
                         })()}
                       </td>
                       <td style={{ padding: '0.25rem' }}>
