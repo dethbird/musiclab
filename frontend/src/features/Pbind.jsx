@@ -14,6 +14,9 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
 
   const [form, setForm] = useState({ startBeat: '0', duration: '1', repeat: 1 });
 
+  // Output preferences
+  const [compressOutput, setCompressOutput] = useState(true);
+
   // No midinote: we store degree & octave per point, while scale/root are provided by global state
 
   // Storage modal state
@@ -424,7 +427,16 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
                         })()}
                       </td>
                       <td style={{ padding: '0.25rem' }}>
-                        <button className="button is-small is-danger" onClick={() => removePoint(idx)}>Remove</button>
+                        <button
+                          className="button is-small is-danger"
+                          onClick={() => removePoint(idx)}
+                          aria-label="Remove point"
+                          title="Remove point"
+                        >
+                          <span className="icon is-small">
+                            <i className="fas fa-trash" aria-hidden="true"></i>
+                          </span>
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -445,10 +457,21 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
               ]
             </div>
           </div>
+          <div style={{ marginBottom: '0.5rem' }}>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={compressOutput}
+                onChange={(e) => setCompressOutput(e.target.checked)}
+                style={{ marginRight: '0.4rem' }}
+              />
+              Compress output with Pn()
+            </label>
+          </div>
           <pre style={{ whiteSpace: 'pre-wrap' }}>
             {(() => {
               // Now toPbind already emits \scale and \root as Pseqs so no injection is needed
-              const p = toPbind(timeline);
+              const p = toPbind(timeline, { compress: compressOutput });
               return p;
             })()}
           </pre>

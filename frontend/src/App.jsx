@@ -222,22 +222,6 @@ function App() {
                     </select>
                 </div>
               </div>
-              <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
-                <label htmlFor="octave-select" className="label is-medium" style={{ marginBottom: '0.25rem', fontSize: '1.05rem' }}>Octave</label>
-                <div className="select is-medium">
-                  <select id="octave-select" value={octave} aria-label="Octave" onChange={(e) => setOctave(e.target.value)} style={{ fontSize: '1rem' }}>
-                    <option value="0">0</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                  </select>
-                </div>
-              </div>
               <div className="control" style={{ display: 'flex', flexDirection: 'column', marginLeft: '0.5rem' }}>
                 <label htmlFor="scale-select-header" className="label is-medium" style={{ marginBottom: '0.25rem', fontSize: '1.05rem' }}>Scale</label>
                 <div className="select is-medium">
@@ -252,6 +236,22 @@ function App() {
                     {Array.isArray(scaleState.data) ? scaleState.data.map((s) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     )) : null}
+                  </select>
+                </div>
+              </div>
+              <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+                <label htmlFor="octave-select" className="label is-medium" style={{ marginBottom: '0.25rem', fontSize: '1.05rem' }}>Octave</label>
+                <div className="select is-medium">
+                  <select id="octave-select" value={octave} aria-label="Octave" onChange={(e) => setOctave(e.target.value)} style={{ fontSize: '1rem' }}>
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
                   </select>
                 </div>
               </div>

@@ -129,34 +129,42 @@ function compressWithPn(list, formatItem = (v) => String(v)) {
   return tokens;
 }
 
-export function toPbind({ durs, dursFr, degrees, octaves, roots, scales }) {
+export function toPbind({ durs, dursFr, degrees, octaves, roots, scales }, options = {}) {
+  const { compress = true } = options;
+
   const octaveItems = Array.isArray(octaves)
     ? octaves.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : String(v))))
     : [];
   const octaveLit = octaveItems.length > 0
-    ? compressWithPn(octaveItems, (s) => s).join(', ')
+    ? (compress ? compressWithPn(octaveItems, (s) => s).join(', ') : octaveItems.join(', '))
     : '';
 
   const degreeItems = Array.isArray(degrees)
     ? degrees.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : String(v))))
     : [];
   const degreeLit = degreeItems.length > 0
-    ? compressWithPn(degreeItems, (s) => s).join(', ')
+    ? (compress ? compressWithPn(degreeItems, (s) => s).join(', ') : degreeItems.join(', '))
     : '';
 
-  const rootLit = Array.isArray(roots)
-    ? compressWithPn(roots.map((v) => (v == null ? 0 : v)), (v) => String(v)).join(', ')
+  const rootItems = Array.isArray(roots)
+    ? roots.map((v) => String(v == null ? 0 : v))
+    : [];
+  const rootLit = rootItems.length > 0
+    ? (compress ? compressWithPn(rootItems, (s) => s).join(', ') : rootItems.join(', '))
     : '';
 
-  const scaleLit = Array.isArray(scales)
-    ? compressWithPn(scales.map((v) => (v == null ? 'none' : String(v))), (id) => `Scale.${id}`).join(', ')
+  const scaleItems = Array.isArray(scales)
+    ? scales.map((v) => `Scale.${v == null ? 'none' : String(v)}`)
+    : [];
+  const scaleLit = scaleItems.length > 0
+    ? (compress ? compressWithPn(scaleItems, (s) => s).join(', ') : scaleItems.join(', '))
     : '';
 
   const durItems = (Array.isArray(dursFr) && dursFr.length > 0)
     ? dursFr.map((f) => fracToScLiteral(f))
     : durs.map((n) => String(+Number(n).toFixed(6)));
   const durLit = durItems.length > 0
-    ? compressWithPn(durItems, (s) => s).join(', ')
+    ? (compress ? compressWithPn(durItems, (s) => s).join(', ') : durItems.join(', '))
     : '';
 
   return `Pbind(\n  \\scale, Pseq([${scaleLit}], 1),\n  \\root,  Pseq([${rootLit}], 1),\n  \\octave, Pseq([${octaveLit}], 1),\n  \\degree, Pseq([${degreeLit}], 1),\n  \\dur,  Pseq([${durLit}], 1)\n)`;
