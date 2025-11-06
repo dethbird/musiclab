@@ -450,12 +450,17 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
             {(() => {
               const p = toPbind(timeline);
               const scaleName = selectedScaleId ? selectedScaleId : 'none';
+              // Map note prop to a 0-11 tonic for \root (Key dropdown maps to 0..11)
+              const NOTE_NAMES_PREVIEW = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+              const rootIdx = NOTE_NAMES_PREVIEW.indexOf(note) >= 0 ? NOTE_NAMES_PREVIEW.indexOf(note) : 0;
+              const rootLine = `  \\root, ${rootIdx},\n`;
               const scaleLine = `  \\scale, Scale.${scaleName},\n`;
+
               if (typeof p === 'string' && p.startsWith('Pbind(\n')) {
-                return p.replace('Pbind(\n', `Pbind(\n${scaleLine}`);
+                return p.replace('Pbind(\n', `Pbind(\n${rootLine}${scaleLine}`);
               }
               // fallback: just prefix
-              return `Pbind(\n${scaleLine}${p}`;
+              return `Pbind(\n${rootLine}${scaleLine}${p}`;
             })()}
           </pre>
         </div>
