@@ -340,6 +340,7 @@ function Pbind({
         {/* Add-point */}
         <div className="box">
           <h3 className="title is-6">Add point</h3>
+          {/* Row 1: timing fields */}
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div>
               <label className="label is-small">Start beat</label>
@@ -362,6 +363,9 @@ function Pbind({
                      onChange={(e) => setForm((f) => ({ ...f, repeat: Math.max(1, Number(e.target.value) | 0) }))}
               />
             </div>
+          </div>
+          {/* Row 2: pitch selectors + Add button */}
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '0.5rem' }}>
             {/* Inline synced selectors (same as header) */}
             <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
               <label htmlFor="note-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Key</label>
