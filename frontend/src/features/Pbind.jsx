@@ -370,7 +370,7 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Duration</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Scale</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Octave</th>
-                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Degree</th>
+                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Deg / Note (MIDI)</th>
                   <th></th>
                 </tr>
               </thead>
