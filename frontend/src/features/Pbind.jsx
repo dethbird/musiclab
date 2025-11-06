@@ -39,6 +39,8 @@ function Pbind({
   const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
   const [storageText, setStorageText] = useState('');
   const [storageError, setStorageError] = useState('');
+  // Add-point modal state
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   function openStorageModal() {
     try {
@@ -113,7 +115,7 @@ function Pbind({
       Fr(form.duration);
     } catch (e) {
       window.alert('Please enter valid startBeat and duration (e.g., 1, 0.5, 1/3)');
-      return;
+      return false;
     }
     const repeat = Math.max(1, Number(form.repeat) | 0);
     const sd = Number(selectedDegree);
@@ -135,6 +137,7 @@ function Pbind({
         ],
       },
     ]);
+    return true;
   }
 
   function removePoint(i) {
@@ -261,6 +264,16 @@ function Pbind({
       );
     } catch {}
   }, [compressOutput, loopCount, instrument]);
+
+  // Close Add modal on Escape key
+  useEffect(() => {
+    if (!isAddModalOpen) return;
+    function onKeyDown(e) {
+      if (e.key === 'Escape') setIsAddModalOpen(false);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isAddModalOpen]);
 
   const timeline = useMemo(() => {
     return buildTimeline({ timeSig: { beatsPerBar, beatUnit }, bars, points });
@@ -401,169 +414,25 @@ function Pbind({
 
         {/* Controls */}
 
-        {/* Add-point */}
-        <div className="box">
-          <h3 className="title is-6">Add point</h3>
-          {/* Row 1: timing fields (legato moved to row 2 with pitch selectors) */}
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <div>
-              <label className="label is-small">Start beat</label>
-              <input className="input is-small" type="text" placeholder="e.g. 1 or 3/2"
-                     value={form.startBeat}
-                     onChange={(e) => setForm((f) => ({ ...f, startBeat: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="label is-small">Duration</label>
-              <input className="input is-small" type="text" placeholder="e.g. 1/3, 1/4"
-                     value={form.duration}
-                     onChange={(e) => setForm((f) => ({ ...f, duration: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="label is-small">Repeat</label>
-              <input className="input is-small" type="number" min={1}
-                     value={form.repeat}
-                     onChange={(e) => setForm((f) => ({ ...f, repeat: Math.max(1, Number(e.target.value) | 0) }))}
-              />
-            </div>
-          </div>
-          {/* Row 2: pitch selectors */}
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-            {/* Inline synced selectors (same as header) */}
-            <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
-              <label htmlFor="note-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Key</label>
-              <div className="select is-small">
-                <select
-                  id="note-select-pbind"
-                  value={note}
-                  aria-label="Key name"
-                  onChange={(e) => onNoteChange && onNoteChange(e.target.value)}
-                >
-                  <option value="C">C</option>
-                  <option value="C#">C#</option>
-                  <option value="D">D</option>
-                  <option value="E♭">E♭</option>
-                  <option value="E">E</option>
-                  <option value="F">F</option>
-                  <option value="F#">F#</option>
-                  <option value="G">G</option>
-                  <option value="G#">G#</option>
-                  <option value="A">A</option>
-                  <option value="B♭">B♭</option>
-                  <option value="B">B</option>
-                </select>
-              </div>
-            </div>
-            <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
-              <label htmlFor="scale-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Scale</label>
-              <div className="select is-small">
-                <select
-                  id="scale-select-pbind"
-                  value={selectedScaleId}
-                  aria-label="Selected scale"
-                  onChange={(e) => onSelectedScaleChange && onSelectedScaleChange(e.target.value)}
-                  style={{ minWidth: '160px' }}
-                >
-                  <option value="">— none —</option>
-                  {Array.isArray(scales) ? scales.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  )) : null}
-                </select>
-              </div>
-            </div>
-            <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
-              <label htmlFor="octave-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Octave</label>
-              <div className="select is-small">
-                <select
-                  id="octave-select-pbind"
-                  value={octave}
-                  aria-label="Octave"
-                  onChange={(e) => onOctaveChange && onOctaveChange(e.target.value)}
-                >
-                  <option value="0">0</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                  <option value="5">5</option>
-                  <option value="6">6</option>
-                  <option value="7">7</option>
-                  <option value="8">8</option>
-                </select>
-              </div>
-            </div>
-            <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
-              <label htmlFor="degree-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Degrees</label>
-              <div className="select is-small">
-                <select
-                  id="degree-select-pbind"
-                  value={selectedDegree}
-                  aria-label="Selected degree"
-                  onChange={(e) => onSelectedDegreeChange && onSelectedDegreeChange(e.target.value)}
-                  disabled={!selectedScale || !Array.isArray(selectedScale.degrees) || selectedScale.degrees.length === 0}
-                  style={{ minWidth: '140px' }}
-                >
-                  <option value="">— degree —</option>
-                  {selectedScale && Array.isArray(selectedScale.degrees)
-                    ? selectedScale.degrees.map((d) => {
-                        const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
-                        const baseIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
-                        const semis = Number(d);
-                        const total = baseIdx + semis;
-                        const name = NOTE_NAMES[((total % 12) + 12) % 12];
-                        const octaveOffset = Math.floor(total / 12);
-                        const baseOct = Number.isFinite(Number(octave)) ? Number(octave) : 0;
-                        const displayOct = baseOct + octaveOffset;
-                        const rootMidi = (baseOct + 1) * 12 + baseIdx;
-                        const midi = rootMidi + semis;
-                        const label = `${d}) ${name}${displayOct} (${midi})`;
-                        return (
-                          <option key={d} value={String(d)}>{label}</option>
-                        );
-                      })
-                    : null}
-                </select>
-              </div>
-            </div>
-          </div>
-          {/* Row 3: articulation/dynamics + Add button */}
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-            <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
-              <label htmlFor="legato-input-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Legato</label>
-              <input
-                id="legato-input-pbind"
-                className="input is-small"
-                type="number"
-                step="any"
-                min={0}
-                value={form.legato}
-                onChange={(e) => setForm((f) => ({ ...f, legato: e.target.value }))}
-                style={{ width: '6rem' }}
-              />
-            </div>
-            <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
-              <label htmlFor="amp-input-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Amp</label>
-              <input
-                id="amp-input-pbind"
-                className="input is-small"
-                type="number"
-                step="any"
-                min={0}
-                value={form.amp}
-                onChange={(e) => setForm((f) => ({ ...f, amp: e.target.value }))}
-                style={{ width: '6rem' }}
-              />
-            </div>
-            <div style={{ marginLeft: 'auto' }}>
-              <button className="button is-primary is-small" onClick={addPoint}>Add</button>
-            </div>
-          </div>
-        </div>
+        {/* Add-point moved into a modal. 'Add' button is now in the Points header. */}
 
         {/* Points list */}
         <div className="box">
-          <h3 className="title is-6">Points</h3>
+          <div className="level" style={{ marginBottom: '0.5rem' }}>
+            <div className="level-left">
+              <h3 className="title is-6" style={{ margin: 0 }}>Points</h3>
+            </div>
+            <div className="level-right">
+              <div className="level-item">
+                <button className="button is-primary is-small" onClick={() => setIsAddModalOpen(true)}>
+                  <span className="icon is-small" style={{ marginRight: 6 }}>
+                    <i className="fas fa-plus" aria-hidden="true"></i>
+                  </span>
+                  <span>Add</span>
+                </button>
+              </div>
+            </div>
+          </div>
           {points.length === 0 ? (
             <p className="has-text-grey">No points yet.</p>
           ) : (
@@ -764,6 +633,181 @@ function Pbind({
           <footer className="modal-card-foot" style={{ justifyContent: 'flex-end' }}>
             <button className="button" onClick={() => setIsStorageModalOpen(false)}>Cancel</button>
             <button className="button is-primary" onClick={saveStorageModal}>Save</button>
+          </footer>
+        </div>
+      </div>
+      {/* Add-point modal */}
+      <div className={`modal ${isAddModalOpen ? 'is-active' : ''}`} role="dialog" aria-modal={isAddModalOpen}>
+        <div className="modal-background" onClick={() => setIsAddModalOpen(false)} />
+        <div className="modal-card" style={{ maxWidth: '900px', width: 'min(900px, 96vw)' }}>
+          <header className="modal-card-head">
+            <p className="modal-card-title">Add Pbind point</p>
+            <button className="delete" aria-label="close" onClick={() => setIsAddModalOpen(false)} />
+          </header>
+          <section className="modal-card-body">
+            {/* Row 1: timing fields */}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div>
+                <label className="label is-small">Start beat</label>
+                <input className="input is-small" type="text" placeholder="e.g. 1 or 3/2"
+                       value={form.startBeat}
+                       onChange={(e) => setForm((f) => ({ ...f, startBeat: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="label is-small">Duration</label>
+                <input className="input is-small" type="text" placeholder="e.g. 1/3, 1/4"
+                       value={form.duration}
+                       onChange={(e) => setForm((f) => ({ ...f, duration: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="label is-small">Repeat</label>
+                <input className="input is-small" type="number" min={1}
+                       value={form.repeat}
+                       onChange={(e) => setForm((f) => ({ ...f, repeat: Math.max(1, Number(e.target.value) | 0) }))}
+                />
+              </div>
+            </div>
+            {/* Row 2: pitch selectors */}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+              <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+                <label htmlFor="note-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Key</label>
+                <div className="select is-small">
+                  <select
+                    id="note-select-pbind"
+                    value={note}
+                    aria-label="Key name"
+                    onChange={(e) => onNoteChange && onNoteChange(e.target.value)}
+                  >
+                    <option value="C">C</option>
+                    <option value="C#">C#</option>
+                    <option value="D">D</option>
+                    <option value="E♭">E♭</option>
+                    <option value="E">E</option>
+                    <option value="F">F</option>
+                    <option value="F#">F#</option>
+                    <option value="G">G</option>
+                    <option value="G#">G#</option>
+                    <option value="A">A</option>
+                    <option value="B♭">B♭</option>
+                    <option value="B">B</option>
+                  </select>
+                </div>
+              </div>
+              <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+                <label htmlFor="scale-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Scale</label>
+                <div className="select is-small">
+                  <select
+                    id="scale-select-pbind"
+                    value={selectedScaleId}
+                    aria-label="Selected scale"
+                    onChange={(e) => onSelectedScaleChange && onSelectedScaleChange(e.target.value)}
+                    style={{ minWidth: '160px' }}
+                  >
+                    <option value="">— none —</option>
+                    {Array.isArray(scales) ? scales.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    )) : null}
+                  </select>
+                </div>
+              </div>
+              <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+                <label htmlFor="octave-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Octave</label>
+                <div className="select is-small">
+                  <select
+                    id="octave-select-pbind"
+                    value={octave}
+                    aria-label="Octave"
+                    onChange={(e) => onOctaveChange && onOctaveChange(e.target.value)}
+                  >
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                  </select>
+                </div>
+              </div>
+              <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+                <label htmlFor="degree-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Degrees</label>
+                <div className="select is-small">
+                  <select
+                    id="degree-select-pbind"
+                    value={selectedDegree}
+                    aria-label="Selected degree"
+                    onChange={(e) => onSelectedDegreeChange && onSelectedDegreeChange(e.target.value)}
+                    disabled={!selectedScale || !Array.isArray(selectedScale.degrees) || selectedScale.degrees.length === 0}
+                    style={{ minWidth: '140px' }}
+                  >
+                    <option value="">— degree —</option>
+                    {selectedScale && Array.isArray(selectedScale.degrees)
+                      ? selectedScale.degrees.map((d) => {
+                          const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+                          const baseIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+                          const semis = Number(d);
+                          const total = baseIdx + semis;
+                          const name = NOTE_NAMES[((total % 12) + 12) % 12];
+                          const octaveOffset = Math.floor(total / 12);
+                          const baseOct = Number.isFinite(Number(octave)) ? Number(octave) : 0;
+                          const displayOct = baseOct + octaveOffset;
+                          const rootMidi = (baseOct + 1) * 12 + baseIdx;
+                          const midi = rootMidi + semis;
+                          const label = `${d}) ${name}${displayOct} (${midi})`;
+                          return (
+                            <option key={d} value={String(d)}>{label}</option>
+                          );
+                        })
+                      : null}
+                  </select>
+                </div>
+              </div>
+            </div>
+            {/* Row 3: articulation/dynamics */}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+              <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+                <label htmlFor="legato-input-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Legato</label>
+                <input
+                  id="legato-input-pbind"
+                  className="input is-small"
+                  type="number"
+                  step="any"
+                  min={0}
+                  value={form.legato}
+                  onChange={(e) => setForm((f) => ({ ...f, legato: e.target.value }))}
+                  style={{ width: '6rem' }}
+                />
+              </div>
+              <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+                <label htmlFor="amp-input-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Amp</label>
+                <input
+                  id="amp-input-pbind"
+                  className="input is-small"
+                  type="number"
+                  step="any"
+                  min={0}
+                  value={form.amp}
+                  onChange={(e) => setForm((f) => ({ ...f, amp: e.target.value }))}
+                  style={{ width: '6rem' }}
+                />
+              </div>
+            </div>
+          </section>
+          <footer className="modal-card-foot" style={{ justifyContent: 'flex-end' }}>
+            <button className="button" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
+            <button
+              className="button is-primary"
+              onClick={() => {
+                const ok = addPoint();
+                if (ok) setIsAddModalOpen(false);
+              }}
+            >
+              Add point
+            </button>
           </footer>
         </div>
       </div>
