@@ -108,30 +108,56 @@ export function fracToScLiteral(fr) {
   return String(fr);
 }
 
+function compressWithPn(list, formatItem = (v) => String(v)) {
+  const tokens = [];
+  if (!Array.isArray(list) || list.length === 0) return tokens;
+  let curr = list[0];
+  let count = 1;
+  for (let i = 1; i < list.length; i++) {
+    const v = list[i];
+    if (v === curr) {
+      count++;
+    } else {
+      if (count > 1) tokens.push(`Pn(${formatItem(curr)}, ${count})`);
+      else tokens.push(formatItem(curr));
+      curr = v;
+      count = 1;
+    }
+  }
+  if (count > 1) tokens.push(`Pn(${formatItem(curr)}, ${count})`);
+  else tokens.push(formatItem(curr));
+  return tokens;
+}
+
 export function toPbind({ durs, dursFr, degrees, octaves, roots, scales }) {
-  const octaveLit = Array.isArray(octaves)
-    ? octaves.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : String(v)))).join(', ')
+  const octaveItems = Array.isArray(octaves)
+    ? octaves.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : String(v))))
+    : [];
+  const octaveLit = octaveItems.length > 0
+    ? compressWithPn(octaveItems, (s) => s).join(', ')
     : '';
 
-  const degreeLit = Array.isArray(degrees)
-    ? degrees.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : String(v)))).join(', ')
+  const degreeItems = Array.isArray(degrees)
+    ? degrees.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : String(v))))
+    : [];
+  const degreeLit = degreeItems.length > 0
+    ? compressWithPn(degreeItems, (s) => s).join(', ')
     : '';
 
   const rootLit = Array.isArray(roots)
-    ? roots.map((v) => String(v == null ? 0 : v)).join(', ')
+    ? compressWithPn(roots.map((v) => (v == null ? 0 : v)), (v) => String(v)).join(', ')
     : '';
 
   const scaleLit = Array.isArray(scales)
-    ? scales.map((v) => {
-        const id = (v == null ? 'none' : String(v));
-        // Ensure valid identifier characters for SC
-        return `Scale.${id}`;
-      }).join(', ')
+    ? compressWithPn(scales.map((v) => (v == null ? 'none' : String(v))), (id) => `Scale.${id}`).join(', ')
     : '';
 
-  const durLit = (Array.isArray(dursFr) && dursFr.length > 0)
-    ? dursFr.map((f) => fracToScLiteral(f)).join(', ')
-    : durs.map((n) => +Number(n).toFixed(6)).join(', ');
+  const durItems = (Array.isArray(dursFr) && dursFr.length > 0)
+    ? dursFr.map((f) => fracToScLiteral(f))
+    : durs.map((n) => String(+Number(n).toFixed(6)));
+  const durLit = durItems.length > 0
+    ? compressWithPn(durItems, (s) => s).join(', ')
+    : '';
 
   return `Pbind(\n  \\scale, Pseq([${scaleLit}], 1),\n  \\root,  Pseq([${rootLit}], 1),\n  \\octave, Pseq([${octaveLit}], 1),\n  \\degree, Pseq([${degreeLit}], 1),\n  \\dur,  Pseq([${durLit}], 1)\n)`;
 }
