@@ -188,7 +188,20 @@ function App() {
       }
 
       if (activeTabConfig.id === 'pbind') {
-        return <Pbind note={note} octave={octave} selectedDegree={selectedDegree} selectedScaleId={selectedScaleId} />;
+        return (
+          <Pbind
+            note={note}
+            octave={octave}
+            selectedDegree={selectedDegree}
+            selectedScaleId={selectedScaleId}
+            onNoteChange={(v) => setNote(v)}
+            onOctaveChange={(v) => setOctave(v)}
+            onSelectedScaleChange={(v) => setSelectedScaleId(v)}
+            onSelectedDegreeChange={(v) => setSelectedDegree(v)}
+            scales={Array.isArray(scaleState.data) ? scaleState.data : []}
+            selectedScale={selectedScale}
+          />
+        );
       }
 
     return activeTabConfig.element;

@@ -2,7 +2,20 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Fr, toNumber } from '../lib/fraction.js';
 import { buildTimeline, toPbind, fracToScLiteral } from './pbind/buildTimeline.js';
 
-function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId = '' }) {
+function Pbind({
+  note = 'C',
+  octave = '4',
+  selectedDegree = '',
+  selectedScaleId = '',
+  // shared state updaters to keep selectors in sync with header
+  onNoteChange,
+  onOctaveChange,
+  onSelectedScaleChange,
+  onSelectedDegreeChange,
+  // scale catalog and selectedScale to render options
+  scales = [],
+  selectedScale = null,
+}) {
   const STORAGE_KEY_POINTS = 'musiclab:pbind:points';
   const STORAGE_KEY_SETTINGS = 'musiclab:pbind:settings';
   const STORAGE_KEY_FORM = 'musiclab:pbind:form';
@@ -348,6 +361,102 @@ function Pbind({ note = 'C', octave = '4', selectedDegree = '', selectedScaleId 
                      value={form.repeat}
                      onChange={(e) => setForm((f) => ({ ...f, repeat: Math.max(1, Number(e.target.value) | 0) }))}
               />
+            </div>
+            {/* Inline synced selectors (same as header) */}
+            <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+              <label htmlFor="note-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Key</label>
+              <div className="select is-small">
+                <select
+                  id="note-select-pbind"
+                  value={note}
+                  aria-label="Key name"
+                  onChange={(e) => onNoteChange && onNoteChange(e.target.value)}
+                >
+                  <option value="C">C</option>
+                  <option value="C#">C#</option>
+                  <option value="D">D</option>
+                  <option value="E♭">E♭</option>
+                  <option value="E">E</option>
+                  <option value="F">F</option>
+                  <option value="F#">F#</option>
+                  <option value="G">G</option>
+                  <option value="G#">G#</option>
+                  <option value="A">A</option>
+                  <option value="B♭">B♭</option>
+                  <option value="B">B</option>
+                </select>
+              </div>
+            </div>
+            <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+              <label htmlFor="scale-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Scale</label>
+              <div className="select is-small">
+                <select
+                  id="scale-select-pbind"
+                  value={selectedScaleId}
+                  aria-label="Selected scale"
+                  onChange={(e) => onSelectedScaleChange && onSelectedScaleChange(e.target.value)}
+                  style={{ minWidth: '160px' }}
+                >
+                  <option value="">— none —</option>
+                  {Array.isArray(scales) ? scales.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  )) : null}
+                </select>
+              </div>
+            </div>
+            <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+              <label htmlFor="octave-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Octave</label>
+              <div className="select is-small">
+                <select
+                  id="octave-select-pbind"
+                  value={octave}
+                  aria-label="Octave"
+                  onChange={(e) => onOctaveChange && onOctaveChange(e.target.value)}
+                >
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                </select>
+              </div>
+            </div>
+            <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+              <label htmlFor="degree-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Degrees</label>
+              <div className="select is-small">
+                <select
+                  id="degree-select-pbind"
+                  value={selectedDegree}
+                  aria-label="Selected degree"
+                  onChange={(e) => onSelectedDegreeChange && onSelectedDegreeChange(e.target.value)}
+                  disabled={!selectedScale || !Array.isArray(selectedScale.degrees) || selectedScale.degrees.length === 0}
+                  style={{ minWidth: '140px' }}
+                >
+                  <option value="">— degree —</option>
+                  {selectedScale && Array.isArray(selectedScale.degrees)
+                    ? selectedScale.degrees.map((d) => {
+                        const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+                        const baseIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+                        const semis = Number(d);
+                        const total = baseIdx + semis;
+                        const name = NOTE_NAMES[((total % 12) + 12) % 12];
+                        const octaveOffset = Math.floor(total / 12);
+                        const baseOct = Number.isFinite(Number(octave)) ? Number(octave) : 0;
+                        const displayOct = baseOct + octaveOffset;
+                        const rootMidi = (baseOct + 1) * 12 + baseIdx;
+                        const midi = rootMidi + semis;
+                        const label = `${d}) ${name}${displayOct} (${midi})`;
+                        return (
+                          <option key={d} value={String(d)}>{label}</option>
+                        );
+                      })
+                    : null}
+                </select>
+              </div>
             </div>
             {/* Midinote removed: sound is driven by scale, root, degree, octave */}
             <div style={{ marginLeft: 'auto' }}>
