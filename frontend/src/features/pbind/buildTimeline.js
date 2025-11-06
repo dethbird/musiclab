@@ -68,9 +68,25 @@ export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars 
 
   const dursFr = chunks.map((c) => c.dur);
   const durs = dursFr.map((f) => toNumber(f));
-  const degrees = chunks.map((c) => (c.rest ? restMarker() : (c.degree == null ? null : c.degree)));
-  const octaves = chunks.map((c) => (c.rest ? restMarker() : (c.octave == null ? null : c.octave)));
-  return { chunks, durs, dursFr, degrees, octaves, totalBeats: toNumber(total) };
+  const degrees = [];
+  const octaves = [];
+  const roots = [];
+  const scales = [];
+  let lastRoot = null;
+  let lastScale = null;
+  for (const c of chunks) {
+    // degree/octave keep Rest markers to align with note/rest visualization
+    degrees.push(c.rest ? restMarker() : (c.degree == null ? null : c.degree));
+    octaves.push(c.rest ? restMarker() : (c.octave == null ? null : c.octave));
+
+    // For root/scale, propagate last seen value through rests so the pattern remains defined
+    if (!c.rest && c.root != null) lastRoot = c.root;
+    if (!c.rest && c.scale != null) lastScale = c.scale;
+    roots.push(lastRoot == null ? 0 : lastRoot);
+    scales.push(lastScale == null ? 'none' : lastScale);
+  }
+
+  return { chunks, durs, dursFr, degrees, octaves, roots, scales, totalBeats: toNumber(total) };
 }
 
 export function fracToScLiteral(fr) {
@@ -92,7 +108,7 @@ export function fracToScLiteral(fr) {
   return String(fr);
 }
 
-export function toPbind({ durs, dursFr, degrees, octaves }) {
+export function toPbind({ durs, dursFr, degrees, octaves, roots, scales }) {
   const octaveLit = Array.isArray(octaves)
     ? octaves.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : String(v)))).join(', ')
     : '';
@@ -101,9 +117,21 @@ export function toPbind({ durs, dursFr, degrees, octaves }) {
     ? degrees.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : String(v)))).join(', ')
     : '';
 
+  const rootLit = Array.isArray(roots)
+    ? roots.map((v) => String(v == null ? 0 : v)).join(', ')
+    : '';
+
+  const scaleLit = Array.isArray(scales)
+    ? scales.map((v) => {
+        const id = (v == null ? 'none' : String(v));
+        // Ensure valid identifier characters for SC
+        return `Scale.${id}`;
+      }).join(', ')
+    : '';
+
   const durLit = (Array.isArray(dursFr) && dursFr.length > 0)
     ? dursFr.map((f) => fracToScLiteral(f)).join(', ')
     : durs.map((n) => +Number(n).toFixed(6)).join(', ');
 
-  return `Pbind(\n  \\octave, Pseq([${octaveLit}], 1),\n  \\degree, Pseq([${degreeLit}], 1),\n  \\dur,  Pseq([${durLit}], 1)\n)`;
+  return `Pbind(\n  \\scale, Pseq([${scaleLit}], 1),\n  \\root,  Pseq([${rootLit}], 1),\n  \\octave, Pseq([${octaveLit}], 1),\n  \\degree, Pseq([${degreeLit}], 1),\n  \\dur,  Pseq([${durLit}], 1)\n)`;
 }
