@@ -293,6 +293,33 @@ function Pbind({
       </div>
 
       <div className="content">
+        {/* Timeline settings moved above the timeline */}
+        <div className="box">
+          <h3 className="title is-6">Timeline settings</h3>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div>
+              <label className="label is-small">Beats per bar</label>
+              <div className="control">
+                <input className="input is-small" type="number" min={1} value={beatsPerBar}
+                       onChange={(e) => setBeatsPerBar(Math.max(1, Number(e.target.value) | 0))} />
+              </div>
+            </div>
+            <div>
+              <label className="label is-small">Beat unit</label>
+              <div className="control">
+                <input className="input is-small" type="number" min={1} value={beatUnit}
+                       onChange={(e) => setBeatUnit(Math.max(1, Number(e.target.value) | 0))} />
+              </div>
+            </div>
+            <div>
+              <label className="label is-small">Bars</label>
+              <div className="control">
+                <input className="input is-small" type="number" min={1} value={bars}
+                       onChange={(e) => setBars(Math.max(1, Number(e.target.value) | 0))} />
+              </div>
+            </div>
+          </div>
+        </div>
         {/* Tiny bar timeline */}
         <div className="box">
           <h3 className="title is-6" style={{ marginBottom: '0.5rem' }}>Timeline</h3>
@@ -373,32 +400,6 @@ function Pbind({
         </div>
 
         {/* Controls */}
-        <div className="box">
-          <h3 className="title is-6">Timeline settings</h3>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <div>
-              <label className="label is-small">Beats per bar</label>
-              <div className="control">
-                <input className="input is-small" type="number" min={1} value={beatsPerBar}
-                       onChange={(e) => setBeatsPerBar(Math.max(1, Number(e.target.value) | 0))} />
-              </div>
-            </div>
-            <div>
-              <label className="label is-small">Beat unit</label>
-              <div className="control">
-                <input className="input is-small" type="number" min={1} value={beatUnit}
-                       onChange={(e) => setBeatUnit(Math.max(1, Number(e.target.value) | 0))} />
-              </div>
-            </div>
-            <div>
-              <label className="label is-small">Bars</label>
-              <div className="control">
-                <input className="input is-small" type="number" min={1} value={bars}
-                       onChange={(e) => setBars(Math.max(1, Number(e.target.value) | 0))} />
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Add-point */}
         <div className="box">
