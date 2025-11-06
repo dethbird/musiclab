@@ -26,7 +26,7 @@ function Pbind({
 
   const [points, setPoints] = useState([]);
 
-  const [form, setForm] = useState({ startBeat: '0', duration: '1', legato: '1', repeat: 1 });
+  const [form, setForm] = useState({ startBeat: '0', duration: '1', legato: '1', amp: '1', repeat: 1 });
 
   // Output preferences
   const [compressOutput, setCompressOutput] = useState(true);
@@ -69,7 +69,7 @@ function Pbind({
       return;
     }
     if (!Array.isArray(parsed)) {
-      setStorageError('JSON must be an array of points: [{ startBeat, duration, repeat, notes: [{ legato, scale, root, degree, octave }] }, ...]');
+  setStorageError('JSON must be an array of points: [{ startBeat, duration, repeat, notes: [{ legato, amp, scale, root, degree, octave }] }, ...]');
       return;
     }
     // Clean and coerce shape for new schema with notes[]
@@ -89,6 +89,7 @@ function Pbind({
         const n = hasNotes && p.notes.length > 0 ? p.notes[0] : p;
         const noteObj = {
           legato: (Number.isFinite(Number(n.legato)) ? Number(n.legato) : 1),
+          amp: (Number.isFinite(Number(n.amp)) ? Number(n.amp) : 1),
           scale: typeof n.scale === 'string' ? n.scale : currentScale,
           root: Number.isFinite(Number(n.root)) ? Number(n.root) : rootIdx,
           degree: Number.isFinite(Number(n.degree)) ? Number(n.degree) : (Number.isFinite(Number(selectedDegree)) ? Number(selectedDegree) : null),
@@ -118,7 +119,8 @@ function Pbind({
     const sd = Number(selectedDegree);
     const degreeVal = Number.isFinite(sd) ? sd : null;
     const baseOct = Number.isFinite(Number(octave)) ? Number(octave) : null;
-    const leg = Number.isFinite(Number(form.legato)) ? Number(form.legato) : 1;
+  const leg = Number.isFinite(Number(form.legato)) ? Number(form.legato) : 1;
+  const ampVal = Number.isFinite(Number(form.amp)) ? Number(form.amp) : 1;
     const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
     const rootIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
     const scaleId = selectedScaleId || 'none';
@@ -129,7 +131,7 @@ function Pbind({
         duration: form.duration,
         repeat,
         notes: [
-          { legato: leg, scale: scaleId, root: rootIdx, degree: degreeVal, octave: baseOct },
+          { legato: leg, amp: ampVal, scale: scaleId, root: rootIdx, degree: degreeVal, octave: baseOct },
         ],
       },
     ]);
@@ -161,6 +163,7 @@ function Pbind({
               const n = hasNotes && p.notes.length > 0 ? p.notes[0] : p;
               const noteObj = {
                 legato: (Number.isFinite(Number(n.legato)) ? Number(n.legato) : 1),
+                amp: (Number.isFinite(Number(n.amp)) ? Number(n.amp) : 1),
                 scale: typeof n.scale === 'string' ? n.scale : (selectedScaleId || 'none'),
                 root: Number.isFinite(Number(n.root)) ? Number(n.root) : defaultRoot,
                 degree: Number.isFinite(Number(n.degree)) ? Number(n.degree) : (Number.isFinite(Number(selectedDegree)) ? Number(selectedDegree) : null),
@@ -199,6 +202,7 @@ function Pbind({
             startBeat: String(f.startBeat ?? '0'),
             duration: String(f.duration ?? '1'),
             legato: String(f.legato ?? '1'),
+            amp: String(f.amp ?? '1'),
             repeat: Math.max(1, Number(f.repeat ?? 1) | 0),
           });
         }
@@ -399,7 +403,7 @@ function Pbind({
         {/* Add-point */}
         <div className="box">
           <h3 className="title is-6">Add point</h3>
-          {/* Row 1: timing fields */}
+          {/* Row 1: timing fields (legato moved to row 2 with pitch selectors) */}
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div>
               <label className="label is-small">Start beat</label>
@@ -416,17 +420,6 @@ function Pbind({
               />
             </div>
             <div>
-              <label className="label is-small">Legato</label>
-              <input
-                className="input is-small"
-                type="number"
-                step="any"
-                min={0}
-                value={form.legato}
-                onChange={(e) => setForm((f) => ({ ...f, legato: e.target.value }))}
-              />
-            </div>
-            <div>
               <label className="label is-small">Repeat</label>
               <input className="input is-small" type="number" min={1}
                      value={form.repeat}
@@ -434,7 +427,7 @@ function Pbind({
               />
             </div>
           </div>
-          {/* Row 2: pitch selectors + Add button */}
+          {/* Row 2: pitch selectors */}
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '0.5rem' }}>
             {/* Inline synced selectors (same as header) */}
             <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -532,7 +525,35 @@ function Pbind({
                 </select>
               </div>
             </div>
-            {/* Midinote removed: sound is driven by scale, root, degree, octave */}
+          </div>
+          {/* Row 3: articulation/dynamics + Add button */}
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+            <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+              <label htmlFor="legato-input-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Legato</label>
+              <input
+                id="legato-input-pbind"
+                className="input is-small"
+                type="number"
+                step="any"
+                min={0}
+                value={form.legato}
+                onChange={(e) => setForm((f) => ({ ...f, legato: e.target.value }))}
+                style={{ width: '6rem' }}
+              />
+            </div>
+            <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+              <label htmlFor="amp-input-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Amp</label>
+              <input
+                id="amp-input-pbind"
+                className="input is-small"
+                type="number"
+                step="any"
+                min={0}
+                value={form.amp}
+                onChange={(e) => setForm((f) => ({ ...f, amp: e.target.value }))}
+                style={{ width: '6rem' }}
+              />
+            </div>
             <div style={{ marginLeft: 'auto' }}>
               <button className="button is-primary is-small" onClick={addPoint}>Add</button>
             </div>
@@ -552,6 +573,7 @@ function Pbind({
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Start</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Duration</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Legato</th>
+                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Amp</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Scale</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Octave</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Deg / Note (MIDI)</th>
@@ -585,6 +607,10 @@ function Pbind({
                       <td style={{ padding: '0.25rem' }}>{(() => {
                         const n = Array.isArray(p.notes) && p.notes[0] ? p.notes[0] : {};
                         return n.legato == null ? '1' : String(n.legato);
+                      })()}</td>
+                      <td style={{ padding: '0.25rem' }}>{(() => {
+                        const n = Array.isArray(p.notes) && p.notes[0] ? p.notes[0] : {};
+                        return n.amp == null ? '1' : String(n.amp);
                       })()}</td>
                       <td style={{ padding: '0.25rem' }}>
                         {(() => {
