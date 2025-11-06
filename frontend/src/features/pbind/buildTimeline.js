@@ -25,7 +25,8 @@ export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars 
       const offset = mul(dur, Fr(i, 1));
       // normalize scale: treat 'none' or falsy as null to allow SC 'nil' emission later
       const normScale = (p.scale && p.scale !== 'none') ? p.scale : null;
-      expanded.push({ start: add(start, offset), dur, degree: p.degree ?? null, octave: p.octave ?? null, scale: normScale, root: p.root ?? null });
+      const legato = Number.isFinite(Number(p.legato)) ? Number(p.legato) : 1;
+      expanded.push({ start: add(start, offset), dur, degree: p.degree ?? null, octave: p.octave ?? null, scale: normScale, root: p.root ?? null, legato });
     }
   }
 
@@ -57,7 +58,15 @@ export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars 
     const clipEnd = lt(total, hardEnd) ? total : hardEnd;
     if (lt(t, clipEnd)) {
       const playDur = sub(clipEnd, t);
-      chunks.push({ rest: false, dur: playDur, degree: ev.degree ?? null, octave: ev.octave ?? null, scale: ev.scale ?? null, root: ev.root ?? null });
+      chunks.push({
+        rest: false,
+        dur: playDur,
+        degree: ev.degree ?? null,
+        octave: ev.octave ?? null,
+        scale: ev.scale ?? null,
+        root: ev.root ?? null,
+        legato: ev.legato == null ? 1 : ev.legato,
+      });
       t = clipEnd;
     }
     if (!lt(t, total)) break;
@@ -74,6 +83,7 @@ export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars 
   const octaves = [];
   const roots = [];
   const scales = [];
+  const legatos = [];
   let lastRoot = null;
   let lastScale = null;
   for (const c of chunks) {
@@ -91,9 +101,11 @@ export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars 
       lastScale = (c.scale == null ? null : c.scale);
       scales.push(lastScale);
     }
+    // Legato mirrors degree/octave behavior
+    legatos.push(c.rest ? restMarker() : (c.legato == null ? 1 : c.legato));
   }
 
-  return { chunks, durs, dursFr, degrees, octaves, roots, scales, totalBeats: toNumber(total) };
+  return { chunks, durs, dursFr, degrees, octaves, roots, scales, legatos, totalBeats: toNumber(total) };
 }
 
 export function fracToScLiteral(fr) {
@@ -136,7 +148,7 @@ function compressWithPn(list, formatItem = (v) => String(v)) {
   return tokens;
 }
 
-export function toPbind({ durs, dursFr, degrees, octaves, roots, scales }, options = {}) {
+export function toPbind({ durs, dursFr, degrees, octaves, roots, scales, legatos }, options = {}) {
   const { compress = true, loopCount = null } = options;
   const repeatsLit = (Number.isFinite(Number(loopCount)) && Number(loopCount) > 0)
     ? String(Math.floor(Number(loopCount)))
@@ -170,6 +182,13 @@ export function toPbind({ durs, dursFr, degrees, octaves, roots, scales }, optio
     ? (compress ? compressWithPn(scaleItems, (s) => s).join(', ') : scaleItems.join(', '))
     : '';
 
+  const legatoItems = Array.isArray(legatos)
+    ? legatos.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : String(v))))
+    : [];
+  const legatoLit = legatoItems.length > 0
+    ? (compress ? compressWithPn(legatoItems, (s) => s).join(', ') : legatoItems.join(', '))
+    : '';
+
   const durItems = (Array.isArray(dursFr) && dursFr.length > 0)
     ? dursFr.map((f) => fracToScLiteral(f))
     : durs.map((n) => String(+Number(n).toFixed(6)));
@@ -177,5 +196,5 @@ export function toPbind({ durs, dursFr, degrees, octaves, roots, scales }, optio
     ? (compress ? compressWithPn(durItems, (s) => s).join(', ') : durItems.join(', '))
     : '';
 
-  return `(\nPbind(\n  \\scale, Pseq([${scaleLit}], ${repeatsLit}),\n  \\root,  Pseq([${rootLit}], ${repeatsLit}),\n  \\octave, Pseq([${octaveLit}], ${repeatsLit}),\n  \\degree, Pseq([${degreeLit}], ${repeatsLit}),\n  \\dur,  Pseq([${durLit}], ${repeatsLit})\n).play\n)`;
+  return `(\nPbind(\n  \\scale, Pseq([${scaleLit}], ${repeatsLit}),\n  \\root,  Pseq([${rootLit}], ${repeatsLit}),\n  \\octave, Pseq([${octaveLit}], ${repeatsLit}),\n  \\degree, Pseq([${degreeLit}], ${repeatsLit}),\n  \\legato, Pseq([${legatoLit}], ${repeatsLit}),\n  \\dur,  Pseq([${durLit}], ${repeatsLit})\n).play\n)`;
 }

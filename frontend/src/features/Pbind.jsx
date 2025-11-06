@@ -25,7 +25,7 @@ function Pbind({
 
   const [points, setPoints] = useState([]);
 
-  const [form, setForm] = useState({ startBeat: '0', duration: '1', repeat: 1 });
+  const [form, setForm] = useState({ startBeat: '0', duration: '1', legato: '1', repeat: 1 });
 
   // Output preferences
   const [compressOutput, setCompressOutput] = useState(true);
@@ -79,6 +79,7 @@ function Pbind({
       .map((p) => ({
         startBeat: String(p.startBeat ?? '0'),
         duration: String(p.duration ?? '1'),
+        legato: (Number.isFinite(Number(p.legato)) ? Number(p.legato) : 1),
         repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
         scale: typeof p.scale === 'string' ? p.scale : currentScale,
         root: Number.isFinite(Number(p.root)) ? Number(p.root) : rootIdx,
@@ -107,12 +108,13 @@ function Pbind({
   const sd = Number(selectedDegree);
   const degreeVal = Number.isFinite(sd) ? sd : null;
   const baseOct = Number.isFinite(Number(octave)) ? Number(octave) : null;
+  const leg = Number.isFinite(Number(form.legato)) ? Number(form.legato) : 1;
   const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
   const rootIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
   const scaleId = selectedScaleId || 'none';
     setPoints((prev) => [
       ...prev,
-      { startBeat: form.startBeat, duration: form.duration, repeat, scale: scaleId, root: rootIdx, degree: degreeVal, octave: baseOct },
+      { startBeat: form.startBeat, duration: form.duration, legato: leg, repeat, scale: scaleId, root: rootIdx, degree: degreeVal, octave: baseOct },
     ]);
   }
 
@@ -133,6 +135,7 @@ function Pbind({
             .map((p) => ({
               startBeat: String(p.startBeat ?? '0'),
               duration: String(p.duration ?? '1'),
+              legato: (Number.isFinite(Number(p.legato)) ? Number(p.legato) : 1),
               repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
               scale: typeof p.scale === 'string' ? p.scale : (selectedScaleId || 'none'),
               root: Number.isFinite(Number(p.root)) ? Number(p.root) : (['C','C#','D','E♭','E','F','F#','G','G#','A','B♭','B'].indexOf(note) >= 0 ? ['C','C#','D','E♭','E','F','F#','G','G#','A','B♭','B'].indexOf(note) : 0),
@@ -169,6 +172,7 @@ function Pbind({
           setForm({
             startBeat: String(f.startBeat ?? '0'),
             duration: String(f.duration ?? '1'),
+            legato: String(f.legato ?? '1'),
             repeat: Math.max(1, Number(f.repeat ?? 1) | 0),
           });
         }
@@ -361,6 +365,17 @@ function Pbind({
               />
             </div>
             <div>
+              <label className="label is-small">Legato</label>
+              <input
+                className="input is-small"
+                type="number"
+                step="any"
+                min={0}
+                value={form.legato}
+                onChange={(e) => setForm((f) => ({ ...f, legato: e.target.value }))}
+              />
+            </div>
+            <div>
               <label className="label is-small">Repeat</label>
               <input className="input is-small" type="number" min={1}
                      value={form.repeat}
@@ -485,6 +500,7 @@ function Pbind({
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>#</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Start</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Duration</th>
+                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Legato</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Scale</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Octave</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Deg / Note (MIDI)</th>
@@ -515,6 +531,7 @@ function Pbind({
                           return rep > 1 ? `${dur} x ${rep}` : dur;
                         })()}
                       </td>
+                      <td style={{ padding: '0.25rem' }}>{p.legato == null ? '1' : String(p.legato)}</td>
                       <td style={{ padding: '0.25rem' }}>
                         {(() => {
                           const ROOT_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
