@@ -69,25 +69,33 @@ function Pbind({
       return;
     }
     if (!Array.isArray(parsed)) {
-      setStorageError('JSON must be an array of points: [{ startBeat, duration, repeat, pitch }, ...]');
+      setStorageError('JSON must be an array of points: [{ startBeat, duration, repeat, notes: [{ legato, scale, root, degree, octave }] }, ...]');
       return;
     }
-    // Clean and coerce shape
+    // Clean and coerce shape for new schema with notes[]
     const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
     const rootIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
     const currentScale = selectedScaleId || 'none';
     const cleaned = parsed
       .filter((p) => p && typeof p === 'object')
-      .map((p) => ({
-        startBeat: String(p.startBeat ?? '0'),
-        duration: String(p.duration ?? '1'),
-        legato: (Number.isFinite(Number(p.legato)) ? Number(p.legato) : 1),
-        repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
-        scale: typeof p.scale === 'string' ? p.scale : currentScale,
-        root: Number.isFinite(Number(p.root)) ? Number(p.root) : rootIdx,
-        degree: Number.isFinite(Number(p.degree)) ? Number(p.degree) : (Number.isFinite(Number(selectedDegree)) ? Number(selectedDegree) : null),
-        octave: Number.isFinite(Number(p.octave)) ? Number(p.octave) : (Number.isFinite(Number(octave)) ? Number(octave) : null),
-      }));
+      .map((p) => {
+        const base = {
+          startBeat: String(p.startBeat ?? '0'),
+          duration: String(p.duration ?? '1'),
+          repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
+        };
+        // If legacy shape, wrap into notes[]
+        const hasNotes = Array.isArray(p.notes);
+        const n = hasNotes && p.notes.length > 0 ? p.notes[0] : p;
+        const noteObj = {
+          legato: (Number.isFinite(Number(n.legato)) ? Number(n.legato) : 1),
+          scale: typeof n.scale === 'string' ? n.scale : currentScale,
+          root: Number.isFinite(Number(n.root)) ? Number(n.root) : rootIdx,
+          degree: Number.isFinite(Number(n.degree)) ? Number(n.degree) : (Number.isFinite(Number(selectedDegree)) ? Number(selectedDegree) : null),
+          octave: Number.isFinite(Number(n.octave)) ? Number(n.octave) : (Number.isFinite(Number(octave)) ? Number(octave) : null),
+        };
+        return { ...base, notes: [noteObj] };
+      });
     try {
       localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(cleaned));
     } catch (e) {
@@ -106,17 +114,24 @@ function Pbind({
       window.alert('Please enter valid startBeat and duration (e.g., 1, 0.5, 1/3)');
       return;
     }
-  const repeat = Math.max(1, Number(form.repeat) | 0);
-  const sd = Number(selectedDegree);
-  const degreeVal = Number.isFinite(sd) ? sd : null;
-  const baseOct = Number.isFinite(Number(octave)) ? Number(octave) : null;
-  const leg = Number.isFinite(Number(form.legato)) ? Number(form.legato) : 1;
-  const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
-  const rootIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
-  const scaleId = selectedScaleId || 'none';
+    const repeat = Math.max(1, Number(form.repeat) | 0);
+    const sd = Number(selectedDegree);
+    const degreeVal = Number.isFinite(sd) ? sd : null;
+    const baseOct = Number.isFinite(Number(octave)) ? Number(octave) : null;
+    const leg = Number.isFinite(Number(form.legato)) ? Number(form.legato) : 1;
+    const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+    const rootIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+    const scaleId = selectedScaleId || 'none';
     setPoints((prev) => [
       ...prev,
-      { startBeat: form.startBeat, duration: form.duration, legato: leg, repeat, scale: scaleId, root: rootIdx, degree: degreeVal, octave: baseOct },
+      {
+        startBeat: form.startBeat,
+        duration: form.duration,
+        repeat,
+        notes: [
+          { legato: leg, scale: scaleId, root: rootIdx, degree: degreeVal, octave: baseOct },
+        ],
+      },
     ]);
   }
 
@@ -131,19 +146,28 @@ function Pbind({
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          // Basic shape validation; coerce minimal fields
+          // Basic shape validation; coerce minimal fields to new schema
+          const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+          const defaultRoot = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
           const cleaned = parsed
             .filter((p) => p && typeof p === 'object')
-            .map((p) => ({
-              startBeat: String(p.startBeat ?? '0'),
-              duration: String(p.duration ?? '1'),
-              legato: (Number.isFinite(Number(p.legato)) ? Number(p.legato) : 1),
-              repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
-              scale: typeof p.scale === 'string' ? p.scale : (selectedScaleId || 'none'),
-              root: Number.isFinite(Number(p.root)) ? Number(p.root) : (['C','C#','D','E♭','E','F','F#','G','G#','A','B♭','B'].indexOf(note) >= 0 ? ['C','C#','D','E♭','E','F','F#','G','G#','A','B♭','B'].indexOf(note) : 0),
-              degree: Number.isFinite(Number(p.degree)) ? Number(p.degree) : (Number.isFinite(Number(selectedDegree)) ? Number(selectedDegree) : null),
-              octave: Number.isFinite(Number(p.octave)) ? Number(p.octave) : (Number.isFinite(Number(octave)) ? Number(octave) : null),
-            }));
+            .map((p) => {
+              const base = {
+                startBeat: String(p.startBeat ?? '0'),
+                duration: String(p.duration ?? '1'),
+                repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
+              };
+              const hasNotes = Array.isArray(p.notes);
+              const n = hasNotes && p.notes.length > 0 ? p.notes[0] : p;
+              const noteObj = {
+                legato: (Number.isFinite(Number(n.legato)) ? Number(n.legato) : 1),
+                scale: typeof n.scale === 'string' ? n.scale : (selectedScaleId || 'none'),
+                root: Number.isFinite(Number(n.root)) ? Number(n.root) : defaultRoot,
+                degree: Number.isFinite(Number(n.degree)) ? Number(n.degree) : (Number.isFinite(Number(selectedDegree)) ? Number(selectedDegree) : null),
+                octave: Number.isFinite(Number(n.octave)) ? Number(n.octave) : (Number.isFinite(Number(octave)) ? Number(octave) : null),
+              };
+              return { ...base, notes: [noteObj] };
+            });
           setPoints(cleaned);
         }
       }
@@ -558,25 +582,33 @@ function Pbind({
                           return rep > 1 ? `${dur} x ${rep}` : dur;
                         })()}
                       </td>
-                      <td style={{ padding: '0.25rem' }}>{p.legato == null ? '1' : String(p.legato)}</td>
+                      <td style={{ padding: '0.25rem' }}>{(() => {
+                        const n = Array.isArray(p.notes) && p.notes[0] ? p.notes[0] : {};
+                        return n.legato == null ? '1' : String(n.legato);
+                      })()}</td>
                       <td style={{ padding: '0.25rem' }}>
                         {(() => {
                           const ROOT_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
-                          if (!Number.isFinite(Number(p.root))) return p.scale || '—';
-                          const r = Number(p.root) % 12;
+                          const n = Array.isArray(p.notes) && p.notes[0] ? p.notes[0] : {};
+                          if (!Number.isFinite(Number(n.root))) return n.scale || '—';
+                          const r = Number(n.root) % 12;
                           const name = ROOT_NAMES[(r + 12) % 12];
-                          const scaleLabel = p.scale || '—';
+                          const scaleLabel = n.scale || '—';
                           return `${name}(${r}) ${scaleLabel}`;
                         })()}
                       </td>
-                      <td style={{ padding: '0.25rem' }}>{p.octave == null ? '—' : String(p.octave)}</td>
+                      <td style={{ padding: '0.25rem' }}>{(() => {
+                        const n = Array.isArray(p.notes) && p.notes[0] ? p.notes[0] : {};
+                        return n.octave == null ? '—' : String(n.octave);
+                      })()}</td>
                       <td style={{ padding: '0.25rem' }}>
                         {(() => {
-                          if (p.degree == null) return '—';
-                          const deg = Number(p.degree);
+                          const n = Array.isArray(p.notes) && p.notes[0] ? p.notes[0] : {};
+                          if (n.degree == null) return '—';
+                          const deg = Number(n.degree);
                           if (!Number.isFinite(deg)) return String(p.degree);
-                          const rootVal = Number(p.root);
-                          const octVal = Number(p.octave);
+                          const rootVal = Number(n.root);
+                          const octVal = Number(n.octave);
                           if (!Number.isFinite(rootVal) || !Number.isFinite(octVal)) return String(deg);
                           const safeRoot = ((rootVal % 12) + 12) % 12;
                           const midi = (octVal + 1) * 12 + safeRoot + deg;

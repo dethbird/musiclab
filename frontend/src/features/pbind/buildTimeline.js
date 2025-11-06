@@ -15,18 +15,24 @@ function cmpFrac(a, b) {
 export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars = 1, points = [] }) {
   const total = Fr(timeSig.beatsPerBar * bars, 1);
 
-  // Expand repeats into separate sequential events
+  // Expand repeats and notes into separate sequential events (one event per repeated block; notes currently single-note)
   const expanded = [];
   for (const p of points) {
     const start = fromFr(p.startBeat);
     const dur = fromFr(p.duration);
     const repeat = Math.max(1, Number(p.repeat || 1) | 0);
+    // For now, we only use the first note (prototype stage)
+    const firstNote = Array.isArray(p.notes) && p.notes[0] ? p.notes[0] : null;
+    const degreeVal = firstNote ? firstNote.degree : p.degree; // fallback legacy
+    const octaveVal = firstNote ? firstNote.octave : p.octave;
+    const scaleVal = firstNote ? firstNote.scale : p.scale;
+    const rootVal = firstNote ? firstNote.root : p.root;
+    const legatoVal = firstNote ? firstNote.legato : p.legato;
     for (let i = 0; i < repeat; i++) {
       const offset = mul(dur, Fr(i, 1));
-      // normalize scale: treat 'none' or falsy as null to allow SC 'nil' emission later
-      const normScale = (p.scale && p.scale !== 'none') ? p.scale : null;
-      const legato = Number.isFinite(Number(p.legato)) ? Number(p.legato) : 1;
-      expanded.push({ start: add(start, offset), dur, degree: p.degree ?? null, octave: p.octave ?? null, scale: normScale, root: p.root ?? null, legato });
+      const normScale = (scaleVal && scaleVal !== 'none') ? scaleVal : null;
+      const legato = Number.isFinite(Number(legatoVal)) ? Number(legatoVal) : 1;
+      expanded.push({ start: add(start, offset), dur, degree: degreeVal ?? null, octave: octaveVal ?? null, scale: normScale, root: rootVal ?? null, legato });
     }
   }
 
