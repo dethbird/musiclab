@@ -669,7 +669,7 @@ function Pbind({
                 />
               </div>
             </div>
-            {/* Row 2: pitch selectors */}
+            {/* Row 2: pitch selectors + articulation/dynamics */}
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '0.5rem' }}>
               <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
                 <label htmlFor="note-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Key</label>
@@ -766,9 +766,6 @@ function Pbind({
                   </select>
                 </div>
               </div>
-            </div>
-            {/* Row 3: articulation/dynamics */}
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '0.5rem' }}>
               <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
                 <label htmlFor="legato-input-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Legato</label>
                 <input
