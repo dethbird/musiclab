@@ -15,23 +15,32 @@ function cmpFrac(a, b) {
 export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars = 1, points = [] }) {
   const total = Fr(timeSig.beatsPerBar * bars, 1);
 
-  // Expand repeats and notes into separate sequential events (one event per repeated block; notes currently single-note)
+  // Expand repeats and notes into separate sequential events (one event per repeated block; notes can be multiple per point)
   const expanded = [];
   for (const p of points) {
     const start = fromFr(p.startBeat);
     const dur = fromFr(p.duration);
     const repeat = Math.max(1, Number(p.repeat || 1) | 0);
-    // For now, we only use the first note (prototype stage)
-    const firstNote = Array.isArray(p.notes) && p.notes[0] ? p.notes[0] : null;
-    const degreeVal = firstNote ? firstNote.degree : p.degree; // fallback legacy
-    const octaveVal = firstNote ? firstNote.octave : p.octave;
-    const scaleVal = firstNote ? firstNote.scale : p.scale;
-    const rootVal = firstNote ? firstNote.root : p.root;
-    const legatoVal = firstNote ? firstNote.legato : p.legato;
+    const notes = (Array.isArray(p.notes) && p.notes.length > 0) ? p.notes : [p];
+    const degreesArr = notes.map((n) => (Number.isFinite(Number(n.degree)) ? Number(n.degree) : null)).filter((v) => v != null);
+    const octavesArr = notes.map((n) => (Number.isFinite(Number(n.octave)) ? Number(n.octave) : null)).filter((v) => v != null);
+    const rootsArr = notes.map((n) => (Number.isFinite(Number(n.root)) ? Number(n.root) : null)).filter((v) => v != null);
+    const scalesArr = notes.map((n) => (n && typeof n.scale === 'string' ? n.scale : null));
+    const legatosArr = notes.map((n) => (Number.isFinite(Number(n.legato)) ? Number(n.legato) : 1));
+
+    const degreeVal = degreesArr.length <= 1 ? (degreesArr[0] ?? null) : degreesArr;
+    const octaveVal = octavesArr.length <= 1 ? (octavesArr[0] ?? null) : octavesArr;
+    const rootVal = rootsArr.length <= 1 ? (rootsArr[0] ?? null) : rootsArr;
+    const scaleVal = scalesArr.length <= 1 ? (scalesArr[0] ?? null) : scalesArr;
+    const legatoVal = legatosArr.length <= 1 ? (legatosArr[0] ?? 1) : legatosArr;
     for (let i = 0; i < repeat; i++) {
       const offset = mul(dur, Fr(i, 1));
-      const normScale = (scaleVal && scaleVal !== 'none') ? scaleVal : null;
-      const legato = Number.isFinite(Number(legatoVal)) ? Number(legatoVal) : 1;
+      const normScale = Array.isArray(scaleVal)
+        ? scaleVal.map((s) => (s && s !== 'none') ? s : null)
+        : ((scaleVal && scaleVal !== 'none') ? scaleVal : null);
+      const legato = Array.isArray(legatoVal)
+        ? legatoVal.map((l) => (Number.isFinite(Number(l)) ? Number(l) : 1))
+        : (Number.isFinite(Number(legatoVal)) ? Number(legatoVal) : 1);
       expanded.push({ start: add(start, offset), dur, degree: degreeVal ?? null, octave: octaveVal ?? null, scale: normScale, root: rootVal ?? null, legato });
     }
   }
@@ -165,36 +174,61 @@ export function toPbind({ durs, dursFr, degrees, octaves, roots, scales, legatos
     return raw.startsWith('\\') ? raw : `\\${raw}`;
   })();
 
+  const fmtArray = (arr, mapItem = (x) => String(x)) => `[` + arr.map(mapItem).join(', ') + `]`;
   const octaveItems = Array.isArray(octaves)
-    ? octaves.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : String(v))))
+    ? octaves.map((v) => {
+        if (v && v.__rest) return 'Rest()';
+        if (v == null) return 'Rest()';
+        if (Array.isArray(v)) return fmtArray(v, (x) => String(x));
+        return String(v);
+      })
     : [];
   const octaveLit = octaveItems.length > 0
     ? (compress ? compressWithPn(octaveItems, (s) => s).join(', ') : octaveItems.join(', '))
     : '';
 
   const degreeItems = Array.isArray(degrees)
-    ? degrees.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : String(v))))
+    ? degrees.map((v) => {
+        if (v && v.__rest) return 'Rest()';
+        if (v == null) return 'Rest()';
+        if (Array.isArray(v)) return fmtArray(v, (x) => String(x));
+        return String(v);
+      })
     : [];
   const degreeLit = degreeItems.length > 0
     ? (compress ? compressWithPn(degreeItems, (s) => s).join(', ') : degreeItems.join(', '))
     : '';
 
   const rootItems = Array.isArray(roots)
-    ? roots.map((v) => String(v == null ? 0 : v))
+    ? roots.map((v) => {
+        if (v == null) return '0';
+        if (Array.isArray(v)) return fmtArray(v, (x) => String(x == null ? 0 : x));
+        return String(v);
+      })
     : [];
   const rootLit = rootItems.length > 0
     ? (compress ? compressWithPn(rootItems, (s) => s).join(', ') : rootItems.join(', '))
     : '';
 
   const scaleItems = Array.isArray(scales)
-    ? scales.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : `Scale.${String(v)}`)))
+    ? scales.map((v) => {
+        if (v && v.__rest) return 'Rest()';
+        if (v == null) return 'Rest()';
+        if (Array.isArray(v)) return fmtArray(v, (x) => (x == null ? 'Rest()' : `Scale.${String(x)}`));
+        return `Scale.${String(v)}`;
+      })
     : [];
   const scaleLit = scaleItems.length > 0
     ? (compress ? compressWithPn(scaleItems, (s) => s).join(', ') : scaleItems.join(', '))
     : '';
 
   const legatoItems = Array.isArray(legatos)
-    ? legatos.map((v) => (v && v.__rest ? 'Rest()' : (v == null ? 'Rest()' : String(v))))
+    ? legatos.map((v) => {
+        if (v && v.__rest) return 'Rest()';
+        if (v == null) return 'Rest()';
+        if (Array.isArray(v)) return fmtArray(v, (x) => String(x));
+        return String(v);
+      })
     : [];
   const legatoLit = legatoItems.length > 0
     ? (compress ? compressWithPn(legatoItems, (s) => s).join(', ') : legatoItems.join(', '))
