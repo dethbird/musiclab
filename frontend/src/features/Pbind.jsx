@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Fr, toNumber } from '../lib/fraction.js';
 import { buildTimeline, toPbind, fracToScLiteral } from './pbind/buildTimeline.js';
+import PianoKeyboard from './PianoKeyboard.jsx';
 
 function Pbind({
   note = 'C',
@@ -443,6 +444,38 @@ function Pbind({
   const preview = useMemo(() => {
     return toPbind(timeline, { compress: compressOutput, loopCount: loopCount, instrument });
   }, [timeline, compressOutput, loopCount, instrument]);
+
+  // Small wrapper to auto-center the highlighted keys when rendered
+  function PointKeyboard({ highlighted }) {
+    const kbRef = useRef(null);
+    // Compute a compact MIDI range around highlighted notes to reduce width
+    const range = useMemo(() => {
+      const MIN = 21; // A0
+      const MAX = 108; // C8
+      const arr = (highlighted || []).map(Number).filter((n) => Number.isFinite(n));
+      if (arr.length === 0) return { start: MIN, end: MAX };
+      let min = Math.min(...arr);
+      let max = Math.max(...arr);
+      // pad by a fifth (~7 semitones) on each side for context
+      min = Math.max(MIN, min - 7);
+      max = Math.min(MAX, max + 7);
+      // snap to octave boundaries (C .. B) for nicer visuals
+      const start = Math.max(MIN, min - (min % 12)); // down to nearest C
+      const end = Math.min(MAX, max + (11 - (max % 12))); // up to nearest B
+      // keep at least one octave range
+      return (end - start < 12) ? { start: Math.max(MIN, start - 6), end: Math.min(MAX, end + 6) } : { start, end };
+    }, [highlighted]);
+    useEffect(() => {
+      if (kbRef.current && Array.isArray(highlighted)) {
+        kbRef.current.scrollToMidis(highlighted);
+      }
+    }, [highlighted]);
+    return (
+      <div style={{ width: '100%', maxWidth: '100%', overflowX: 'auto' }}>
+        <PianoKeyboard ref={kbRef} highlighted={highlighted} startMidi={range.start} endMidi={range.end} hideScrollbar={false} />
+      </div>
+    );
+  }
   return (
     <section className="tool-panel">
       <div className="level">
@@ -621,97 +654,120 @@ function Pbind({
                     if (da !== db) return da - db;
                     return a.idx - b.idx;
                   })
-                  .map(({ p, idx }, row) => (
-                    <tr key={`${idx}-${String(p.startBeat)}-${String(p.duration)}`}>
-                      <td style={{ padding: '0.25rem' }}>{row}</td>
-                      <td style={{ padding: '0.25rem' }}>{String(p.startBeat)}</td>
-                      <td style={{ padding: '0.25rem' }}>
-                        {(() => {
-                          const dur = String(p.duration);
-                          const rep = Math.max(1, Number(p.repeat) | 0);
-                          return rep > 1 ? `${dur} x ${rep}` : dur;
-                        })()}
-                      </td>
-                      <td style={{ padding: '0.25rem' }}>
-                        {(() => {
-                          const ROOT_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
-                          const notesArr = Array.isArray(p.notes) ? p.notes : [];
-                          return (
-                            <table className="table is-striped is-narrow is-fullwidth is-hoverable" style={{ margin: 0 }}>
-                              <thead>
-                                <tr>
-                                  <th style={{ padding: '0.25rem' }}>Scale</th>
-                                  <th style={{ padding: '0.25rem' }}>Root</th>
-                                  <th style={{ padding: '0.25rem' }}>Octave</th>
-                                  <th style={{ padding: '0.25rem' }}>Degree</th>
-                                  <th style={{ padding: '0.25rem' }}>Legato</th>
-                                  <th style={{ padding: '0.25rem' }}>Amp</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {(notesArr.length > 0 ? notesArr : [null]).map((n, i) => {
-                                  if (!n) {
+                  .map(({ p, idx }, row) => {
+                    const ROOT_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+                    const notesArr = Array.isArray(p.notes) ? p.notes : [];
+                    const highlightedMidis = (() => {
+                      const set = new Set();
+                      for (const n of notesArr) {
+                        const deg = Number(n?.degree);
+                        const oct = Number(n?.octave);
+                        const rootIdx = Number.isFinite(Number(n?.root)) ? ((Number(n.root) % 12) + 12) % 12 : null;
+                        if (!Number.isFinite(deg) || !Number.isFinite(oct) || !Number.isFinite(rootIdx)) continue;
+                        const rootMidi = (oct + 1) * 12 + rootIdx;
+                        const midi = rootMidi + deg;
+                        if (Number.isFinite(midi)) set.add(midi);
+                      }
+                      return Array.from(set.values()).sort((a, b) => a - b);
+                    })();
+                    return (
+                      <>
+                        <tr key={`${idx}-${String(p.startBeat)}-${String(p.duration)}`}>
+                          <td style={{ padding: '0.25rem' }}>{row}</td>
+                          <td style={{ padding: '0.25rem' }}>{String(p.startBeat)}</td>
+                          <td style={{ padding: '0.25rem' }}>
+                            {(() => {
+                              const dur = String(p.duration);
+                              const rep = Math.max(1, Number(p.repeat) | 0);
+                              return rep > 1 ? `${dur} x ${rep}` : dur;
+                            })()}
+                          </td>
+                          <td style={{ padding: '0.25rem' }}>
+                            {(() => (
+                              <table className="table is-striped is-narrow is-fullwidth is-hoverable" style={{ margin: 0 }}>
+                                <thead>
+                                  <tr>
+                                    <th style={{ padding: '0.25rem' }}>Scale</th>
+                                    <th style={{ padding: '0.25rem' }}>Root</th>
+                                    <th style={{ padding: '0.25rem' }}>Octave</th>
+                                    <th style={{ padding: '0.25rem' }}>Degree</th>
+                                    <th style={{ padding: '0.25rem' }}>Legato</th>
+                                    <th style={{ padding: '0.25rem' }}>Amp</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(notesArr.length > 0 ? notesArr : [null]).map((n, i) => {
+                                    if (!n) {
+                                      return (
+                                        <tr key={`empty-${i}`}>
+                                          <td style={{ padding: '0.25rem' }}>—</td>
+                                          <td style={{ padding: '0.25rem' }}>—</td>
+                                          <td style={{ padding: '0.25rem' }}>—</td>
+                                          <td style={{ padding: '0.25rem' }}>—</td>
+                                          <td style={{ padding: '0.25rem' }}>—</td>
+                                          <td style={{ padding: '0.25rem' }}>—</td>
+                                        </tr>
+                                      );
+                                    }
+                                    const scaleLabel = n.scale || '—';
+                                    const rNum = Number(n.root);
+                                    const rValid = Number.isFinite(rNum);
+                                    const rIdx = rValid ? ((rNum % 12) + 12) % 12 : null;
+                                    const rName = rValid ? ROOT_NAMES[rIdx] : '—';
+                                    const octaveLabel = n.octave == null ? '—' : String(n.octave);
+                                    const degreeLabel = n.degree == null ? '—' : String(n.degree);
+                                    const legatoLabel = n.legato == null ? '1' : String(n.legato);
+                                    const ampLabel = n.amp == null ? '1' : String(n.amp);
                                     return (
-                                      <tr key={`empty-${i}`}>
-                                        <td style={{ padding: '0.25rem' }}>—</td>
-                                        <td style={{ padding: '0.25rem' }}>—</td>
-                                        <td style={{ padding: '0.25rem' }}>—</td>
-                                        <td style={{ padding: '0.25rem' }}>—</td>
-                                        <td style={{ padding: '0.25rem' }}>—</td>
-                                        <td style={{ padding: '0.25rem' }}>—</td>
+                                      <tr key={`note-${i}`}>
+                                        <td style={{ padding: '0.25rem' }}>{scaleLabel}</td>
+                                        <td style={{ padding: '0.25rem' }}>{rValid ? `${rName} (${rIdx})` : '—'}</td>
+                                        <td style={{ padding: '0.25rem' }}>{octaveLabel}</td>
+                                        <td style={{ padding: '0.25rem' }}>{degreeLabel}</td>
+                                        <td style={{ padding: '0.25rem' }}>{legatoLabel}</td>
+                                        <td style={{ padding: '0.25rem' }}>{ampLabel}</td>
                                       </tr>
                                     );
-                                  }
-                                  const scaleLabel = n.scale || '—';
-                                  const rNum = Number(n.root);
-                                  const rValid = Number.isFinite(rNum);
-                                  const rIdx = rValid ? ((rNum % 12) + 12) % 12 : null;
-                                  const rName = rValid ? ROOT_NAMES[rIdx] : '—';
-                                  const octaveLabel = n.octave == null ? '—' : String(n.octave);
-                                  const degreeLabel = n.degree == null ? '—' : String(n.degree);
-                                  const legatoLabel = n.legato == null ? '1' : String(n.legato);
-                                  const ampLabel = n.amp == null ? '1' : String(n.amp);
-                                  return (
-                                    <tr key={`note-${i}`}>
-                                      <td style={{ padding: '0.25rem' }}>{scaleLabel}</td>
-                                      <td style={{ padding: '0.25rem' }}>{rValid ? `${rName} (${rIdx})` : '—'}</td>
-                                      <td style={{ padding: '0.25rem' }}>{octaveLabel}</td>
-                                      <td style={{ padding: '0.25rem' }}>{degreeLabel}</td>
-                                      <td style={{ padding: '0.25rem' }}>{legatoLabel}</td>
-                                      <td style={{ padding: '0.25rem' }}>{ampLabel}</td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          );
-                        })()}
-                      </td>
-                      <td style={{ padding: '0.25rem' }}>
-                        <button
-                          className="button is-small is-info"
-                          onClick={() => openEditModal(idx)}
-                          aria-label="Edit point"
-                          title="Edit point"
-                          style={{ marginRight: '0.25rem' }}
-                        >
-                          <span className="icon is-small">
-                            <i className="fas fa-edit" aria-hidden="true"></i>
-                          </span>
-                        </button>
-                        <button
-                          className="button is-small is-danger"
-                          onClick={() => removePoint(idx)}
-                          aria-label="Remove point"
-                          title="Remove point"
-                        >
-                          <span className="icon is-small">
-                            <i className="fas fa-trash" aria-hidden="true"></i>
-                          </span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                                  })}
+                                </tbody>
+                              </table>
+                            ))()}
+                          </td>
+                          <td style={{ padding: '0.25rem' }}>
+                            <button
+                              className="button is-small is-info"
+                              onClick={() => openEditModal(idx)}
+                              aria-label="Edit point"
+                              title="Edit point"
+                              style={{ marginRight: '0.25rem' }}
+                            >
+                              <span className="icon is-small">
+                                <i className="fas fa-edit" aria-hidden="true"></i>
+                              </span>
+                            </button>
+                            <button
+                              className="button is-small is-danger"
+                              onClick={() => removePoint(idx)}
+                              aria-label="Remove point"
+                              title="Remove point"
+                            >
+                              <span className="icon is-small">
+                                <i className="fas fa-trash" aria-hidden="true"></i>
+                              </span>
+                            </button>
+                          </td>
+                        </tr>
+                        <tr key={`kb-${idx}`}>
+                          <td colSpan={5} style={{ padding: '0.25rem 0.25rem 0.75rem', overflowX: 'hidden' }}>
+                            <div style={{ border: '1px solid #e6e6e6', borderRadius: 4, padding: '0.5rem', background: '#fafafa' }}>
+                              <div className="is-size-7 has-text-grey" style={{ marginBottom: 4 }}>Keys for this point</div>
+                              <PointKeyboard highlighted={highlightedMidis} />
+                            </div>
+                          </td>
+                        </tr>
+                      </>
+                    );
+                  })}
               </tbody>
             </table>
           )}
