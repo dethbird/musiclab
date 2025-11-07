@@ -43,6 +43,9 @@ function Pbind({
   const [storageError, setStorageError] = useState('');
   // Add-point modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  // Edit mode state: reuse Add modal to edit an existing point
+  const [isEditing, setIsEditing] = useState(false);
+  const [editIndex, setEditIndex] = useState(null);
   // Active note index for editing within draftPoint.notes[]
   const [activeNoteIdx, setActiveNoteIdx] = useState(0);
 
@@ -146,6 +149,38 @@ function Pbind({
 
   function removePoint(i) {
     setPoints((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function updatePoint() {
+    if (!isEditing || editIndex == null) return false;
+    const dp = draftPoint;
+    if (!dp) return false;
+    try {
+      Fr(dp.startBeat);
+      Fr(dp.duration);
+    } catch (e) {
+      window.alert('Please enter valid startBeat and duration (e.g., 1, 0.5, 1/3)');
+      return false;
+    }
+    const repeat = Math.max(1, Number(dp.repeat) | 0);
+    const sanitizedNotes = (Array.isArray(dp.notes) && dp.notes.length > 0 ? dp.notes : [{}]).map((n) => {
+      const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+      const rootIdx = Number.isFinite(Number(n?.root)) ? ((Number(n.root) % 12) + 12) % 12 : (NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0);
+      const scaleId = typeof n?.scale === 'string' ? n.scale : (selectedScaleId || 'none');
+      const leg = Number.isFinite(Number(n?.legato)) ? Number(n.legato) : 1;
+      const ampVal = Number.isFinite(Number(n?.amp)) ? Number(n.amp) : 1;
+      const deg = Number.isFinite(Number(n?.degree)) ? Number(n.degree) : (Number.isFinite(Number(selectedDegree)) ? Number(selectedDegree) : null);
+      const oct = Number.isFinite(Number(n?.octave)) ? Number(n.octave) : (Number.isFinite(Number(octave)) ? Number(octave) : null);
+      return { legato: leg, amp: ampVal, scale: scaleId, root: rootIdx, degree: deg, octave: oct };
+    });
+    const updated = {
+      startBeat: String(dp.startBeat),
+      duration: String(dp.duration),
+      repeat,
+      notes: sanitizedNotes,
+    };
+    setPoints((prev) => prev.map((pt, i) => (i === editIndex ? updated : pt)));
+    return true;
   }
 
   // Load saved points on mount
@@ -278,9 +313,9 @@ function Pbind({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isAddModalOpen]);
 
-  // Initialize modal draft state when opening the Add-point modal
+  // Initialize modal draft state when opening the Add-point modal (Add mode only)
   useEffect(() => {
-    if (!isAddModalOpen) return;
+    if (!isAddModalOpen || isEditing) return;
     const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
     const rootIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
     const scaleId = selectedScaleId || 'none';
@@ -339,9 +374,9 @@ function Pbind({
     });
   }
 
-  // Initialize modal draft state when opening the Add-point modal
+  // (Duplicate) Initialize modal draft state when opening the Add-point modal (Add mode only)
   useEffect(() => {
-    if (!isAddModalOpen) return;
+    if (!isAddModalOpen || isEditing) return;
     const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
     const rootIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
     const scaleId = selectedScaleId || 'none';
@@ -364,6 +399,43 @@ function Pbind({
       ],
     });
   }, [isAddModalOpen]);
+
+  // Open helpers
+  function openAddModal() {
+    setIsEditing(false);
+    setEditIndex(null);
+    setIsAddModalOpen(true);
+  }
+
+  function openEditModal(idx) {
+    const p = points[idx];
+    if (!p) return;
+    // Seed draft from existing point, coercing legato/amp to strings for inputs
+    const notes = (Array.isArray(p.notes) && p.notes.length > 0 ? p.notes : [{}]).map((n) => ({
+      legato: n.legato == null ? '1' : String(n.legato),
+      amp: n.amp == null ? '1' : String(n.amp),
+      scale: typeof n.scale === 'string' ? n.scale : (selectedScaleId || 'none'),
+      root: Number.isFinite(Number(n.root)) ? Number(n.root) : 0,
+      degree: Number.isFinite(Number(n.degree)) ? Number(n.degree) : null,
+      octave: Number.isFinite(Number(n.octave)) ? Number(n.octave) : null,
+    }));
+    setDraftPoint({
+      startBeat: String(p.startBeat ?? '0'),
+      duration: String(p.duration ?? '1'),
+      repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
+      notes,
+    });
+    setActiveNoteIdx(0);
+    setIsEditing(true);
+    setEditIndex(idx);
+    setIsAddModalOpen(true);
+  }
+
+  function closePointModal() {
+    setIsAddModalOpen(false);
+    setIsEditing(false);
+    setEditIndex(null);
+  }
 
   const timeline = useMemo(() => {
     return buildTimeline({ timeSig: { beatsPerBar, beatUnit }, bars, points });
@@ -514,7 +586,7 @@ function Pbind({
             </div>
             <div className="level-right">
               <div className="level-item">
-                <button className="button is-primary is-small" onClick={() => setIsAddModalOpen(true)}>
+                <button className="button is-primary is-small" onClick={openAddModal}>
                   <span className="icon is-small" style={{ marginRight: 6 }}>
                     <i className="fas fa-plus" aria-hidden="true"></i>
                   </span>
@@ -616,6 +688,17 @@ function Pbind({
                         })()}
                       </td>
                       <td style={{ padding: '0.25rem' }}>
+                        <button
+                          className="button is-small is-info"
+                          onClick={() => openEditModal(idx)}
+                          aria-label="Edit point"
+                          title="Edit point"
+                          style={{ marginRight: '0.25rem' }}
+                        >
+                          <span className="icon is-small">
+                            <i className="fas fa-edit" aria-hidden="true"></i>
+                          </span>
+                        </button>
                         <button
                           className="button is-small is-danger"
                           onClick={() => removePoint(idx)}
@@ -730,11 +813,11 @@ function Pbind({
       </div>
       {/* Add-point modal */}
       <div className={`modal ${isAddModalOpen ? 'is-active' : ''}`} role="dialog" aria-modal={isAddModalOpen}>
-        <div className="modal-background" onClick={() => setIsAddModalOpen(false)} />
+        <div className="modal-background" onClick={closePointModal} />
         <div className="modal-card" style={{ maxWidth: '900px', width: 'min(900px, 96vw)' }}>
           <header className="modal-card-head">
-            <p className="modal-card-title">Add Pbind point</p>
-            <button className="delete" aria-label="close" onClick={() => setIsAddModalOpen(false)} />
+            <p className="modal-card-title">{isEditing ? 'Edit Pbind point' : 'Add Pbind point'}</p>
+            <button className="delete" aria-label="close" onClick={closePointModal} />
           </header>
           <section className="modal-card-body">
             {/* Row 1: timing fields */}
@@ -1022,16 +1105,28 @@ function Pbind({
             </div>
           </section>
           <footer className="modal-card-foot" style={{ justifyContent: 'flex-end' }}>
-            <button className="button" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
-            <button
-              className="button is-primary"
-              onClick={() => {
-                const ok = addPoint();
-                if (ok) setIsAddModalOpen(false);
-              }}
-            >
-              Add point
-            </button>
+            <button className="button" onClick={closePointModal}>Cancel</button>
+            {isEditing ? (
+              <button
+                className="button is-primary"
+                onClick={() => {
+                  const ok = updatePoint();
+                  if (ok) closePointModal();
+                }}
+              >
+                Save changes
+              </button>
+            ) : (
+              <button
+                className="button is-primary"
+                onClick={() => {
+                  const ok = addPoint();
+                  if (ok) closePointModal();
+                }}
+              >
+                Add point
+              </button>
+            )}
           </footer>
         </div>
       </div>
