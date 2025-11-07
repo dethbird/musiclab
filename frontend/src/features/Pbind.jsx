@@ -691,6 +691,7 @@ function Pbind({
                                     <th style={{ padding: '0.25rem' }}>Root</th>
                                     <th style={{ padding: '0.25rem' }}>Octave</th>
                                     <th style={{ padding: '0.25rem' }}>Degree</th>
+                                    <th style={{ padding: '0.25rem' }}>Note</th>
                                     <th style={{ padding: '0.25rem' }}>Legato</th>
                                     <th style={{ padding: '0.25rem' }}>Amp</th>
                                   </tr>
@@ -700,6 +701,7 @@ function Pbind({
                                     if (!n) {
                                       return (
                                         <tr key={`empty-${i}`}>
+                                          <td style={{ padding: '0.25rem' }}>—</td>
                                           <td style={{ padding: '0.25rem' }}>—</td>
                                           <td style={{ padding: '0.25rem' }}>—</td>
                                           <td style={{ padding: '0.25rem' }}>—</td>
@@ -718,12 +720,26 @@ function Pbind({
                                     const degreeLabel = n.degree == null ? '—' : String(n.degree);
                                     const legatoLabel = n.legato == null ? '1' : String(n.legato);
                                     const ampLabel = n.amp == null ? '1' : String(n.amp);
+                                    // Compute keyboard note name (sharp notation) if possible
+                                    const NOTE_NAMES_SHARP = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+                                    let noteName = '—';
+                                    do {
+                                      const deg = Number(n.degree);
+                                      const oct = Number(n.octave);
+                                      if (!Number.isFinite(deg) || !Number.isFinite(oct) || !Number.isFinite(rIdx)) break;
+                                      const midi = (oct + 1) * 12 + rIdx + deg;
+                                      if (!Number.isFinite(midi)) break;
+                                      const idx = ((midi % 12) + 12) % 12;
+                                      const o = Math.floor(midi / 12) - 1;
+                                      noteName = `${NOTE_NAMES_SHARP[idx]}${o}`;
+                                    } while(false);
                                     return (
                                       <tr key={`note-${i}`}>
                                         <td style={{ padding: '0.25rem' }}>{scaleLabel}</td>
                                         <td style={{ padding: '0.25rem' }}>{rValid ? `${rName} (${rIdx})` : '—'}</td>
                                         <td style={{ padding: '0.25rem' }}>{octaveLabel}</td>
                                         <td style={{ padding: '0.25rem' }}>{degreeLabel}</td>
+                                        <td style={{ padding: '0.25rem' }}>{noteName}</td>
                                         <td style={{ padding: '0.25rem' }}>{legatoLabel}</td>
                                         <td style={{ padding: '0.25rem' }}>{ampLabel}</td>
                                       </tr>
