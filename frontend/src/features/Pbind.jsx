@@ -78,6 +78,14 @@ function Pbind({
     const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
     const rootIdx = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
     const currentScale = selectedScaleId || 'none';
+    const toNote = (n) => ({
+      legato: (Number.isFinite(Number(n?.legato)) ? Number(n.legato) : 1),
+      amp: (Number.isFinite(Number(n?.amp)) ? Number(n.amp) : 1),
+      scale: typeof n?.scale === 'string' ? n.scale : currentScale,
+      root: Number.isFinite(Number(n?.root)) ? Number(n.root) : rootIdx,
+      degree: Number.isFinite(Number(n?.degree)) ? Number(n.degree) : (Number.isFinite(Number(selectedDegree)) ? Number(selectedDegree) : null),
+      octave: Number.isFinite(Number(n?.octave)) ? Number(n.octave) : (Number.isFinite(Number(octave)) ? Number(octave) : null),
+    });
     const cleaned = parsed
       .filter((p) => p && typeof p === 'object')
       .map((p) => {
@@ -86,18 +94,8 @@ function Pbind({
           duration: String(p.duration ?? '1'),
           repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
         };
-        // If legacy shape, wrap into notes[]
-        const hasNotes = Array.isArray(p.notes);
-        const n = hasNotes && p.notes.length > 0 ? p.notes[0] : p;
-        const noteObj = {
-          legato: (Number.isFinite(Number(n.legato)) ? Number(n.legato) : 1),
-          amp: (Number.isFinite(Number(n.amp)) ? Number(n.amp) : 1),
-          scale: typeof n.scale === 'string' ? n.scale : currentScale,
-          root: Number.isFinite(Number(n.root)) ? Number(n.root) : rootIdx,
-          degree: Number.isFinite(Number(n.degree)) ? Number(n.degree) : (Number.isFinite(Number(selectedDegree)) ? Number(selectedDegree) : null),
-          octave: Number.isFinite(Number(n.octave)) ? Number(n.octave) : (Number.isFinite(Number(octave)) ? Number(octave) : null),
-        };
-        return { ...base, notes: [noteObj] };
+        const notes = Array.isArray(p.notes) && p.notes.length > 0 ? p.notes.map(toNote) : [toNote(p)];
+        return { ...base, notes };
       });
     try {
       localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(cleaned));
@@ -154,6 +152,14 @@ function Pbind({
           // Basic shape validation; coerce minimal fields to new schema
           const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
           const defaultRoot = NOTE_NAMES.indexOf(note) >= 0 ? NOTE_NAMES.indexOf(note) : 0;
+          const toNote = (n) => ({
+            legato: (Number.isFinite(Number(n?.legato)) ? Number(n.legato) : 1),
+            amp: (Number.isFinite(Number(n?.amp)) ? Number(n.amp) : 1),
+            scale: typeof n?.scale === 'string' ? n.scale : (selectedScaleId || 'none'),
+            root: Number.isFinite(Number(n?.root)) ? Number(n.root) : defaultRoot,
+            degree: Number.isFinite(Number(n?.degree)) ? Number(n.degree) : (Number.isFinite(Number(selectedDegree)) ? Number(selectedDegree) : null),
+            octave: Number.isFinite(Number(n?.octave)) ? Number(n.octave) : (Number.isFinite(Number(octave)) ? Number(octave) : null),
+          });
           const cleaned = parsed
             .filter((p) => p && typeof p === 'object')
             .map((p) => {
@@ -162,17 +168,8 @@ function Pbind({
                 duration: String(p.duration ?? '1'),
                 repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
               };
-              const hasNotes = Array.isArray(p.notes);
-              const n = hasNotes && p.notes.length > 0 ? p.notes[0] : p;
-              const noteObj = {
-                legato: (Number.isFinite(Number(n.legato)) ? Number(n.legato) : 1),
-                amp: (Number.isFinite(Number(n.amp)) ? Number(n.amp) : 1),
-                scale: typeof n.scale === 'string' ? n.scale : (selectedScaleId || 'none'),
-                root: Number.isFinite(Number(n.root)) ? Number(n.root) : defaultRoot,
-                degree: Number.isFinite(Number(n.degree)) ? Number(n.degree) : (Number.isFinite(Number(selectedDegree)) ? Number(selectedDegree) : null),
-                octave: Number.isFinite(Number(n.octave)) ? Number(n.octave) : (Number.isFinite(Number(octave)) ? Number(octave) : null),
-              };
-              return { ...base, notes: [noteObj] };
+              const notes = Array.isArray(p.notes) && p.notes.length > 0 ? p.notes.map(toNote) : [toNote(p)];
+              return { ...base, notes };
             });
           setPoints(cleaned);
         }
