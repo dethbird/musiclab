@@ -43,6 +43,8 @@ function Pbind({
   const [storageError, setStorageError] = useState('');
   // Add-point modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  // Active note index for editing within draftPoint.notes[]
+  const [activeNoteIdx, setActiveNoteIdx] = useState(0);
 
   function openStorageModal() {
     try {
@@ -300,7 +302,42 @@ function Pbind({
         },
       ],
     });
+    setActiveNoteIdx(0);
   }, [isAddModalOpen]);
+
+  // Helpers to manage draftPoint notes[]
+  function addDraftNote() {
+    setDraftPoint((dp) => {
+      if (!dp) return dp;
+      const notes = Array.isArray(dp.notes) ? [...dp.notes] : [];
+      const current = notes[activeNoteIdx] || notes[0] || {
+        legato: '1',
+        amp: '1',
+        scale: selectedScaleId || 'none',
+        root: 0,
+        degree: null,
+        octave: null,
+      };
+      const clone = { ...current };
+      notes.push(clone);
+      // move active to the newly added note
+      setActiveNoteIdx(notes.length - 1);
+      return { ...dp, notes };
+    });
+  }
+
+  function removeDraftNote() {
+    setDraftPoint((dp) => {
+      if (!dp) return dp;
+      const notes = Array.isArray(dp.notes) ? [...dp.notes] : [];
+      if (notes.length <= 1) return dp; // keep at least one
+      const idx = Math.min(activeNoteIdx, notes.length - 1);
+      notes.splice(idx, 1);
+      const newActive = Math.max(0, idx - 1);
+      setActiveNoteIdx(newActive);
+      return { ...dp, notes };
+    });
+  }
 
   // Initialize modal draft state when opening the Add-point modal
   useEffect(() => {
@@ -739,13 +776,38 @@ function Pbind({
                 />
               </div>
             </div>
-            {/* Notes section heading */}
-            <p className="has-text-weight-semibold is-size-7" style={{ margin: '0.75rem 0 0.25rem' }}>Notes (notes[])</p>
+            {/* Notes section heading with count and controls */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0.75rem 0 0.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span className="has-text-weight-semibold is-size-7">Notes (notes[])</span>
+                <span className="tag is-info is-light">{Array.isArray(draftPoint?.notes) ? draftPoint.notes.length : 0}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button type="button" className="button is-small" onClick={addDraftNote}>
+                  <span className="icon is-small"><i className="fas fa-plus" aria-hidden="true"></i></span>
+                  <span>Note</span>
+                </button>
+                <button type="button" className="button is-danger is-small" onClick={removeDraftNote} disabled={!draftPoint || !Array.isArray(draftPoint.notes) || draftPoint.notes.length <= 1}>
+                  <span className="icon is-small"><i className="fas fa-trash" aria-hidden="true"></i></span>
+                  <span>Remove</span>
+                </button>
+              </div>
+            </div>
+            {/* Note selector */}
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.25rem' }}>
+              <span className="is-size-7" style={{ opacity: 0.7 }}>Select note:</span>
+              {(draftPoint?.notes || []).map((_, i) => (
+                <button key={`sel-note-${i}`} type="button"
+                        className={`button is-small ${i === activeNoteIdx ? 'is-primary is-light' : ''}`}
+                        onClick={() => setActiveNoteIdx(i)}
+                >{i + 1}</button>
+              ))}
+            </div>
             {/* Row 2: pitch selectors + articulation/dynamics */}
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '0.5rem' }}>
               {(() => {
                 const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
-                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[0]) || {};
+                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[activeNoteIdx]) || {};
                 const rootIdx = Number.isFinite(Number(n0.root)) ? ((Number(n0.root) % 12) + 12) % 12 : 0;
                 const rootName = NOTE_NAMES[rootIdx] || 'C';
                 return (
@@ -762,9 +824,9 @@ function Pbind({
                           setDraftPoint((dp) => {
                             if (!dp) return dp;
                             const notes = [...dp.notes];
-                            const first = { ...(notes[0] || {}) };
+                            const first = { ...(notes[activeNoteIdx] || {}) };
                             first.root = idx >= 0 ? idx : 0;
-                            notes[0] = first;
+                            notes[activeNoteIdx] = first;
                             return { ...dp, notes };
                           });
                         }}
@@ -778,7 +840,7 @@ function Pbind({
                 );
               })()}
               {(() => {
-                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[0]) || {};
+                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[activeNoteIdx]) || {};
                 const draftScaleId = typeof n0.scale === 'string' ? n0.scale : '';
                 return (
                   <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -793,9 +855,9 @@ function Pbind({
                           setDraftPoint((dp) => {
                             if (!dp) return dp;
                             const notes = [...dp.notes];
-                            const first = { ...(notes[0] || {}) };
+                            const first = { ...(notes[activeNoteIdx] || {}) };
                             first.scale = val;
-                            notes[0] = first;
+                            notes[activeNoteIdx] = first;
                             return { ...dp, notes };
                           });
                         }}
@@ -811,7 +873,7 @@ function Pbind({
                 );
               })()}
               {(() => {
-                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[0]) || {};
+                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[activeNoteIdx]) || {};
                 const octVal = n0.octave == null ? '' : String(n0.octave);
                 return (
                   <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -826,9 +888,9 @@ function Pbind({
                           setDraftPoint((dp) => {
                             if (!dp) return dp;
                             const notes = [...dp.notes];
-                            const first = { ...(notes[0] || {}) };
+                            const first = { ...(notes[activeNoteIdx] || {}) };
                             first.octave = v;
-                            notes[0] = first;
+                            notes[activeNoteIdx] = first;
                             return { ...dp, notes };
                           });
                         }}
@@ -850,7 +912,7 @@ function Pbind({
               })()}
               {(() => {
                 const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
-                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[0]) || {};
+                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[activeNoteIdx]) || {};
                 const rootIdx = Number.isFinite(Number(n0.root)) ? ((Number(n0.root) % 12) + 12) % 12 : 0;
                 const draftScaleId = typeof n0.scale === 'string' ? n0.scale : '';
                 const scaleObj = Array.isArray(scales) ? scales.find((s) => s.id === draftScaleId) : null;
@@ -868,9 +930,9 @@ function Pbind({
                           setDraftPoint((dp) => {
                             if (!dp) return dp;
                             const notes = [...dp.notes];
-                            const first = { ...(notes[0] || {}) };
+                            const first = { ...(notes[activeNoteIdx] || {}) };
                             first.degree = v;
-                            notes[0] = first;
+                            notes[activeNoteIdx] = first;
                             return { ...dp, notes };
                           });
                         }}
@@ -900,7 +962,7 @@ function Pbind({
                 );
               })()}
               {(() => {
-                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[0]) || {};
+                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[activeNoteIdx]) || {};
                 const legVal = n0.legato == null ? '1' : String(n0.legato);
                 return (
                   <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -917,9 +979,9 @@ function Pbind({
                         setDraftPoint((dp) => {
                           if (!dp) return dp;
                           const notes = [...dp.notes];
-                          const first = { ...(notes[0] || {}) };
+                          const first = { ...(notes[activeNoteIdx] || {}) };
                           first.legato = v;
-                          notes[0] = first;
+                          notes[activeNoteIdx] = first;
                           return { ...dp, notes };
                         });
                       }}
@@ -929,7 +991,7 @@ function Pbind({
                 );
               })()}
               {(() => {
-                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[0]) || {};
+                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[activeNoteIdx]) || {};
                 const ampVal = n0.amp == null ? '1' : String(n0.amp);
                 return (
                   <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -946,9 +1008,9 @@ function Pbind({
                         setDraftPoint((dp) => {
                           if (!dp) return dp;
                           const notes = [...dp.notes];
-                          const first = { ...(notes[0] || {}) };
+                          const first = { ...(notes[activeNoteIdx] || {}) };
                           first.amp = v;
-                          notes[0] = first;
+                          notes[activeNoteIdx] = first;
                           return { ...dp, notes };
                         });
                       }}
