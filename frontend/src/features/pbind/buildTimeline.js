@@ -25,23 +25,26 @@ export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars 
     const degreesArr = notes.map((n) => (Number.isFinite(Number(n.degree)) ? Number(n.degree) : null)).filter((v) => v != null);
     const octavesArr = notes.map((n) => (Number.isFinite(Number(n.octave)) ? Number(n.octave) : null)).filter((v) => v != null);
     const rootsArr = notes.map((n) => (Number.isFinite(Number(n.root)) ? Number(n.root) : null)).filter((v) => v != null);
-    const scalesArr = notes.map((n) => (n && typeof n.scale === 'string' ? n.scale : null));
-    const legatosArr = notes.map((n) => (Number.isFinite(Number(n.legato)) ? Number(n.legato) : 1));
+  const scalesArr = notes.map((n) => (n && typeof n.scale === 'string' ? n.scale : null));
+  const legatosArr = notes.map((n) => (Number.isFinite(Number(n.legato)) ? Number(n.legato) : 1));
+  const ampsArr = notes.map((n) => (Number.isFinite(Number(n.amp)) ? Number(n.amp) : 1));
 
     const degreeVal = degreesArr.length <= 1 ? (degreesArr[0] ?? null) : degreesArr;
     const octaveVal = octavesArr.length <= 1 ? (octavesArr[0] ?? null) : octavesArr;
     const rootVal = rootsArr.length <= 1 ? (rootsArr[0] ?? null) : rootsArr;
-    const scaleVal = scalesArr.length <= 1 ? (scalesArr[0] ?? null) : scalesArr;
-    const legatoVal = legatosArr.length <= 1 ? (legatosArr[0] ?? 1) : legatosArr;
+  // SuperCollider Events expect \scale to be a single Scale per step (not an array).
+  // If multiple notes are present, we pick the first non-null scale value for the step.
+  // This avoids errors like "binary operator '+' failed" where an Array of Scales reaches degreeToKey.
+  const scaleVal = (scalesArr.find((s) => s && s !== 'none')) ?? null;
+  const legatoVal = legatosArr.length <= 1 ? (legatosArr[0] ?? 1) : legatosArr;
+  const ampVal = ampsArr.length <= 1 ? (ampsArr[0] ?? 1) : ampsArr;
     for (let i = 0; i < repeat; i++) {
       const offset = mul(dur, Fr(i, 1));
-      const normScale = Array.isArray(scaleVal)
-        ? scaleVal.map((s) => (s && s !== 'none') ? s : null)
-        : ((scaleVal && scaleVal !== 'none') ? scaleVal : null);
+      const normScale = (scaleVal && scaleVal !== 'none') ? scaleVal : null;
       const legato = Array.isArray(legatoVal)
         ? legatoVal.map((l) => (Number.isFinite(Number(l)) ? Number(l) : 1))
         : (Number.isFinite(Number(legatoVal)) ? Number(legatoVal) : 1);
-      expanded.push({ start: add(start, offset), dur, degree: degreeVal ?? null, octave: octaveVal ?? null, scale: normScale, root: rootVal ?? null, legato });
+  expanded.push({ start: add(start, offset), dur, degree: degreeVal ?? null, octave: octaveVal ?? null, scale: normScale, root: rootVal ?? null, legato, amp: ampVal });
     }
   }
 
@@ -81,6 +84,7 @@ export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars 
         scale: ev.scale ?? null,
         root: ev.root ?? null,
         legato: ev.legato == null ? 1 : ev.legato,
+        amp: ev.amp == null ? 1 : ev.amp,
       });
       t = clipEnd;
     }
@@ -99,6 +103,7 @@ export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars 
   const roots = [];
   const scales = [];
   const legatos = [];
+  const amps = [];
   let lastRoot = null;
   let lastScale = null;
   for (const c of chunks) {
@@ -118,9 +123,11 @@ export function buildTimeline({ timeSig = { beatsPerBar: 4, beatUnit: 4 }, bars 
     }
     // Legato mirrors degree/octave behavior
     legatos.push(c.rest ? restMarker() : (c.legato == null ? 1 : c.legato));
+    // Amp mirrors legato behavior
+    amps.push(c.rest ? restMarker() : (c.amp == null ? 1 : c.amp));
   }
 
-  return { chunks, durs, dursFr, degrees, octaves, roots, scales, legatos, totalBeats: toNumber(total) };
+  return { chunks, durs, dursFr, degrees, octaves, roots, scales, legatos, amps, totalBeats: toNumber(total) };
 }
 
 export function fracToScLiteral(fr) {
@@ -163,7 +170,7 @@ function compressWithPn(list, formatItem = (v) => String(v)) {
   return tokens;
 }
 
-export function toPbind({ durs, dursFr, degrees, octaves, roots, scales, legatos }, options = {}) {
+export function toPbind({ durs, dursFr, degrees, octaves, roots, scales, legatos, amps }, options = {}) {
   const { compress = true, loopCount = null, instrument = '' } = options;
   const repeatsLit = (Number.isFinite(Number(loopCount)) && Number(loopCount) > 0)
     ? String(Math.floor(Number(loopCount)))
@@ -214,7 +221,12 @@ export function toPbind({ durs, dursFr, degrees, octaves, roots, scales, legatos
     ? scales.map((v) => {
         if (v && v.__rest) return 'Rest()';
         if (v == null) return 'Rest()';
-        if (Array.isArray(v)) return fmtArray(v, (x) => (x == null ? 'Rest()' : `Scale.${String(x)}`));
+        // Defensive: \scale must not be an array in SC Events. If an array slips through,
+        // pick the first non-null value to keep the pattern valid.
+        if (Array.isArray(v)) {
+          const first = v.find((x) => x != null);
+          return first ? `Scale.${String(first)}` : 'Rest()';
+        }
         return `Scale.${String(v)}`;
       })
     : [];
@@ -234,6 +246,18 @@ export function toPbind({ durs, dursFr, degrees, octaves, roots, scales, legatos
     ? (compress ? compressWithPn(legatoItems, (s) => s).join(', ') : legatoItems.join(', '))
     : '';
 
+  const ampItems = Array.isArray(amps)
+    ? amps.map((v) => {
+        if (v && v.__rest) return 'Rest()';
+        if (v == null) return 'Rest()';
+        if (Array.isArray(v)) return fmtArray(v, (x) => String(x));
+        return String(v);
+      })
+    : [];
+  const ampLit = ampItems.length > 0
+    ? (compress ? compressWithPn(ampItems, (s) => s).join(', ') : ampItems.join(', '))
+    : '';
+
   const durItems = (Array.isArray(dursFr) && dursFr.length > 0)
     ? dursFr.map((f) => fracToScLiteral(f))
     : durs.map((n) => String(+Number(n).toFixed(6)));
@@ -241,5 +265,5 @@ export function toPbind({ durs, dursFr, degrees, octaves, roots, scales, legatos
     ? (compress ? compressWithPn(durItems, (s) => s).join(', ') : durItems.join(', '))
     : '';
 
-  return `(\nPbind(\n  \\instrument, ${instrumentSym},\n  \\scale, Pseq([${scaleLit}], ${repeatsLit}),\n  \\root,  Pseq([${rootLit}], ${repeatsLit}),\n  \\octave, Pseq([${octaveLit}], ${repeatsLit}),\n  \\degree, Pseq([${degreeLit}], ${repeatsLit}),\n  \\legato, Pseq([${legatoLit}], ${repeatsLit}),\n  \\dur,  Pseq([${durLit}], ${repeatsLit})\n).play\n)`;
+  return `(\nPbind(\n  \\instrument, ${instrumentSym},\n  \\scale, Pseq([${scaleLit}], ${repeatsLit}),\n  \\root,  Pseq([${rootLit}], ${repeatsLit}),\n  \\octave, Pseq([${octaveLit}], ${repeatsLit}),\n  \\degree, Pseq([${degreeLit}], ${repeatsLit}),\n  \\legato, Pseq([${legatoLit}], ${repeatsLit}),\n  \\amp, Pseq([${ampLit}], ${repeatsLit}),\n  \\dur,  Pseq([${durLit}], ${repeatsLit})\n).play\n)`;
 }
