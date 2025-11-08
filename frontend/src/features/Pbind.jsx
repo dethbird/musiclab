@@ -21,6 +21,7 @@ function Pbind({
   const STORAGE_KEY_SETTINGS = 'musiclab:pbind:settings';
   const STORAGE_KEY_FORM = 'musiclab:pbind:form';
   const STORAGE_KEY_PREVIEW = 'musiclab:pbind:previewOptions';
+  const STORAGE_KEY_SHOW_KEYS = 'musiclab:pbind:showKeys';
   const [beatsPerBar, setBeatsPerBar] = useState(4);
   const [beatUnit, setBeatUnit] = useState(4);
   const [bars, setBars] = useState(1);
@@ -35,6 +36,8 @@ function Pbind({
   const [compressOutput, setCompressOutput] = useState(true);
   const [loopCount, setLoopCount] = useState(''); // blank => inf
   const [instrument, setInstrument] = useState(''); // blank => \\default (handled in toPbind)
+  // Toggle showing per-point keyboards
+  const [showKeys, setShowKeys] = useState(true);
 
   // No midinote: we store degree & octave per point, while scale/root are provided by global state
 
@@ -315,6 +318,18 @@ function Pbind({
     } catch {}
   }, []);
 
+  // Load showKeys toggle on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_SHOW_KEYS);
+      if (raw != null) {
+        let val;
+        try { val = JSON.parse(raw); } catch { val = (raw === 'true' || raw === '1'); }
+        setShowKeys(Boolean(val));
+      }
+    } catch {}
+  }, []);
+
   // Persist preview options on change
   useEffect(() => {
     try {
@@ -324,6 +339,13 @@ function Pbind({
       );
     } catch {}
   }, [compressOutput, loopCount, instrument]);
+
+  // Persist showKeys on change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_SHOW_KEYS, JSON.stringify(showKeys));
+    } catch {}
+  }, [showKeys]);
 
   // Close Add modal on Escape key
   useEffect(() => {
@@ -640,6 +662,17 @@ function Pbind({
             </div>
             <div className="level-right">
               <div className="level-item">
+                <label className="checkbox is-size-7" title="Show keys for each point" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={showKeys}
+                    onChange={(e) => setShowKeys(e.target.checked)}
+                    style={{ marginRight: '0.35rem' }}
+                  />
+                  <span role="img" aria-label="Show keys">🎹</span>
+                </label>
+              </div>
+              <div className="level-item">
                 <button className="button is-primary is-small" onClick={openAddModal}>
                   <span className="icon is-small" style={{ marginRight: 6 }}>
                     <i className="fas fa-plus" aria-hidden="true"></i>
@@ -804,14 +837,16 @@ function Pbind({
                             </button>
                           </td>
                         </tr>
-                        <tr key={`kb-${idx}`}>
-                          <td colSpan={4} style={{ padding: '0.25rem 0.25rem 0.75rem', overflowX: 'hidden' }}>
-                            <div style={{ border: '1px solid #e6e6e6', borderRadius: 4, padding: '0.5rem', background: '#fafafa' }}>
-                              <div className="is-size-7 has-text-grey" style={{ marginBottom: 4 }}>Keys for this point</div>
-                              <PointKeyboard highlighted={highlightedMidis} />
-                            </div>
-                          </td>
-                        </tr>
+                        {showKeys && (
+                          <tr key={`kb-${idx}`}>
+                            <td colSpan={4} style={{ padding: '0.25rem 0.25rem 0.75rem', overflowX: 'hidden' }}>
+                              <div style={{ border: '1px solid #e6e6e6', borderRadius: 4, padding: '0.5rem', background: '#fafafa' }}>
+                                <div className="is-size-7 has-text-grey" style={{ marginBottom: 4 }}>Keys for this point</div>
+                                <PointKeyboard highlighted={highlightedMidis} />
+                              </div>
+                            </td>
+                          </tr>
+                        )}
                       </>
                     );
                   })}
