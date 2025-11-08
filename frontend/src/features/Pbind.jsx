@@ -119,7 +119,8 @@ function Pbind({
           repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
         };
         const notes = Array.isArray(p.notes) && p.notes.length > 0 ? p.notes.map(toNote) : [toNote(p)];
-        return { ...base, notes };
+        const strum = (p.strum === '' || p.strum == null) ? '' : String(p.strum);
+        return { ...base, strum, notes };
       });
     try {
       const cleanedSorted = cleaned.map((p) => ({ ...p, notes: sortNotes(p.notes) }));
@@ -160,6 +161,7 @@ function Pbind({
         startBeat: String(dp.startBeat),
         duration: String(dp.duration),
         repeat,
+        strum: dp.strum == null ? '' : String(dp.strum),
         notes: sanitizedNotes,
       },
     ]);
@@ -185,6 +187,7 @@ function Pbind({
         startBeat: `${newStart.n}/${newStart.d}`.replace(/\/1$/, ''),
         duration: String(src.duration),
         repeat: 1, // always 1 for the copy
+        strum: src.strum == null ? '' : String(src.strum),
         notes: (Array.isArray(src.notes) ? src.notes : []).map(n => ({ ...n }))
       };
       return [...prev, newPoint];
@@ -217,6 +220,7 @@ function Pbind({
       startBeat: String(dp.startBeat),
       duration: String(dp.duration),
       repeat,
+      strum: dp.strum == null ? '' : String(dp.strum),
       notes: sanitizedNotes,
     };
     setPoints((prev) => prev.map((pt, i) => (i === editIndex ? updated : pt)));
@@ -250,7 +254,8 @@ function Pbind({
                 repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
               };
               const notes = Array.isArray(p.notes) && p.notes.length > 0 ? p.notes.map(toNote) : [toNote(p)];
-              return { ...base, notes };
+              const strum = (p.strum === '' || p.strum == null) ? '' : String(p.strum);
+              return { ...base, strum, notes };
             });
           setPoints(cleaned);
         }
@@ -386,6 +391,7 @@ function Pbind({
       startBeat: String(form.startBeat ?? '0'),
       duration: String(form.duration ?? '1'),
       repeat: Math.max(1, Number(form.repeat ?? 1) | 0),
+      strum: '',
       notes: [
         {
           legato: String(form.legato ?? '1'),
@@ -447,6 +453,7 @@ function Pbind({
       startBeat: String(form.startBeat ?? '0'),
       duration: String(form.duration ?? '1'),
       repeat: Math.max(1, Number(form.repeat ?? 1) | 0),
+      strum: '',
       notes: [
         {
           legato: String(form.legato ?? '1'),
@@ -483,6 +490,7 @@ function Pbind({
       startBeat: String(p.startBeat ?? '0'),
       duration: String(p.duration ?? '1'),
       repeat: Math.max(1, Number(p.repeat ?? 1) | 0),
+      strum: p.strum == null ? '' : String(p.strum),
       notes,
     });
     setActiveNoteIdx(0);
@@ -832,6 +840,7 @@ function Pbind({
                 <tr>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Start</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Duration</th>
+                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>Strum</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Notes</th>
                   <th></th>
                 </tr>
@@ -876,6 +885,7 @@ function Pbind({
                               return rep > 1 ? `${dur} x ${rep}` : dur;
                             })()}
                           </td>
+                          <td style={{ padding: '0.25rem' }}>{p.strum == null || p.strum === '' ? '—' : String(p.strum)}</td>
                           <td style={{ padding: '0.25rem' }}>
                             {(() => (
                               <table className="table is-striped is-narrow is-fullwidth is-hoverable" style={{ margin: 0, fontSize: '0.75rem' }}>
@@ -1001,7 +1011,7 @@ function Pbind({
                         </tr>
                         {showKeys && (
                           <tr key={`kb-${idx}`}>
-                            <td colSpan={4} style={{ padding: '0.25rem 0.25rem 0.75rem', overflowX: 'hidden' }}>
+                            <td colSpan={5} style={{ padding: '0.25rem 0.25rem 0.75rem', overflowX: 'hidden' }}>
                               <div style={{ border: '1px solid #e6e6e6', borderRadius: 4, padding: '0.5rem', background: '#fafafa' }}>
                                 <div className="is-size-7 has-text-grey" style={{ marginBottom: 4 }}>Keys for this point</div>
                                 <PointKeyboard highlighted={highlightedMidis} />
@@ -1158,6 +1168,18 @@ function Pbind({
                   onChange={(e) =>
                     setDraftPoint((dp) => (dp ? { ...dp, repeat: Math.max(1, Number(e.target.value) | 0) } : dp))
                   }
+                />
+              </div>
+              <div>
+                <label className="label is-small">Strum</label>
+                <input
+                  className="input is-small"
+                  type="number"
+                  step="any"
+                  min={0}
+                  placeholder="e.g. 0.02"
+                  value={draftPoint?.strum ?? ''}
+                  onChange={(e) => setDraftPoint((dp) => (dp ? { ...dp, strum: e.target.value } : dp))}
                 />
               </div>
             </div>
