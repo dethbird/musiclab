@@ -1168,13 +1168,24 @@ function Pbind({
                 <span className="tag is-info is-light">{Array.isArray(draftPoint?.notes) ? draftPoint.notes.length : 0}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <button type="button" className="button is-small" onClick={addDraftNote}>
+                <button
+                  type="button"
+                  className="button is-primary is-small"
+                  onClick={addDraftNote}
+                  aria-label="Add note"
+                  title="Add note"
+                >
                   <span className="icon is-small"><i className="fas fa-plus" aria-hidden="true"></i></span>
-                  <span>Note</span>
                 </button>
-                <button type="button" className="button is-danger is-small" onClick={removeDraftNote} disabled={!draftPoint || !Array.isArray(draftPoint.notes) || draftPoint.notes.length <= 1}>
+                <button
+                  type="button"
+                  className="button is-danger is-small"
+                  onClick={removeDraftNote}
+                  disabled={!draftPoint || !Array.isArray(draftPoint.notes) || draftPoint.notes.length <= 1}
+                  aria-label="Remove note"
+                  title="Remove note"
+                >
                   <span className="icon is-small"><i className="fas fa-trash" aria-hidden="true"></i></span>
-                  <span>Remove</span>
                 </button>
               </div>
             </div>
