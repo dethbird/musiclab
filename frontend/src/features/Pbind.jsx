@@ -652,7 +652,7 @@ function Pbind({
           {points.length === 0 ? (
             <p className="has-text-grey">No points yet.</p>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
               <thead>
                 <tr>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Start</th>
@@ -703,7 +703,7 @@ function Pbind({
                           </td>
                           <td style={{ padding: '0.25rem' }}>
                             {(() => (
-                              <table className="table is-striped is-narrow is-fullwidth is-hoverable" style={{ margin: 0 }}>
+                              <table className="table is-striped is-narrow is-fullwidth is-hoverable" style={{ margin: 0, fontSize: '0.75rem' }}>
                                 <thead>
                                   <tr>
                                     <th style={{ padding: '0.25rem' }}>Root / Scale</th>
@@ -822,65 +822,67 @@ function Pbind({
 
         <div className="box">
           <h3 className="title is-6">Pbind preview</h3>
-          <div style={{ marginBottom: '0.5rem' }}>
-            <div><strong>Total beats:</strong> {timeline.totalBeats}</div>
-            <div>
-              <strong>dur</strong> = [
-              {(Array.isArray(timeline.dursFr) && timeline.dursFr.length > 0)
-                ? timeline.dursFr.map((f) => fracToScLiteral(f)).join(', ')
-                : timeline.durs.map((n) => Number(n.toFixed?.(6) ?? n).toString()).join(', ')}
-              ]
+          <div className="is-size-7">
+            <div style={{ marginBottom: '0.5rem' }}>
+              <div><strong>Total beats:</strong> {timeline.totalBeats}</div>
+              <div>
+                <strong>dur</strong> = [
+                {(Array.isArray(timeline.dursFr) && timeline.dursFr.length > 0)
+                  ? timeline.dursFr.map((f) => fracToScLiteral(f)).join(', ')
+                  : timeline.durs.map((n) => Number(n.toFixed?.(6) ?? n).toString()).join(', ')}
+                ]
+              </div>
             </div>
-          </div>
-          {/* Compress on its own line */}
-          <div style={{ marginBottom: '0.5rem' }}>
-            <label className="checkbox" style={{ display: 'inline-flex', alignItems: 'center' }}>
-              <input
-                type="checkbox"
-                checked={compressOutput}
-                onChange={(e) => setCompressOutput(e.target.checked)}
-                style={{ marginRight: '0.4rem' }}
-              />
-              Compress output with Pn()
-            </label>
-          </div>
-          {/* Instrument and loop count on the next row */}
-          <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <label htmlFor="instrument" className="label is-small" style={{ margin: 0 }}>Instrument</label>
-              <input
-                id="instrument"
-                className="input is-small"
-                type="text"
-                placeholder="default or pmGrowl"
-                value={instrument}
-                onChange={(e) => setInstrument(e.target.value)}
-                style={{ width: '12rem' }}
-              />
+            {/* Compress on its own line */}
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label className="checkbox is-size-7" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <input
+                  type="checkbox"
+                  checked={compressOutput}
+                  onChange={(e) => setCompressOutput(e.target.checked)}
+                  style={{ marginRight: '0.4rem' }}
+                />
+                Compress output with Pn()
+              </label>
             </div>
-            <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <label htmlFor="loop-count" className="label is-small" style={{ margin: 0 }}>Loop count</label>
-              <input
-                id="loop-count"
-                className="input is-small"
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="inf"
-                value={loopCount}
-                onChange={(e) => setLoopCount(e.target.value)}
-                style={{ width: '6rem' }}
-              />
+            {/* Instrument and loop count on the next row */}
+            <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <label htmlFor="instrument" className="label is-small" style={{ margin: 0 }}>Instrument</label>
+                <input
+                  id="instrument"
+                  className="input is-small"
+                  type="text"
+                  placeholder="default or pmGrowl"
+                  value={instrument}
+                  onChange={(e) => setInstrument(e.target.value)}
+                  style={{ width: '12rem' }}
+                />
+              </div>
+              <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <label htmlFor="loop-count" className="label is-small" style={{ margin: 0 }}>Loop count</label>
+                <input
+                  id="loop-count"
+                  className="input is-small"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="inf"
+                  value={loopCount}
+                  onChange={(e) => setLoopCount(e.target.value)}
+                  style={{ width: '6rem' }}
+                />
+              </div>
             </div>
+            <textarea
+              className="textarea is-small"
+              rows={Math.max(8, Math.min(20, (preview.match(/\n/g)?.length || 0) + 2))}
+              style={{ fontFamily: 'monospace' }}
+              readOnly
+              value={preview}
+              onFocus={(e) => e.target.select()}
+            />
           </div>
-          <textarea
-            className="textarea"
-            rows={Math.max(8, Math.min(20, (preview.match(/\n/g)?.length || 0) + 2))}
-            style={{ fontFamily: 'monospace' }}
-            readOnly
-            value={preview}
-            onFocus={(e) => e.target.select()}
-          />
         </div>
 
       </div>
