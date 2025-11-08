@@ -612,7 +612,7 @@ function Pbind({
             style={{
               position: 'relative',
               width: '100%',
-              height: '24px',
+              height: '36px',
               border: '1px solid #ddd',
               borderRadius: '4px',
               background: '#fafafa',
@@ -747,6 +747,48 @@ function Pbind({
                 });
               })()}
             </div>
+          </div>
+          {/* Beat markers below the timeline */}
+          <div style={{ marginTop: '4px', width: '100%', display: 'flex' }}>
+            {Array.from({ length: Math.max(1, beatsPerBar * bars) }).map((_, i) => (
+              <div
+                key={`beat-marker-${i}`}
+                style={{
+                  flex: '1 1 0',
+                  textAlign: 'left',
+                  fontSize: '10px',
+                  color: '#777',
+                  lineHeight: '1',
+                  paddingTop: '2px',
+                  paddingLeft: '2px',
+                  borderRight: i < (beatsPerBar * bars - 1) ? '1px solid #f0f0f0' : 'none'
+                }}
+                title={`Beat ${(i % beatsPerBar) + 1}${bars > 1 ? ` (bar ${Math.floor(i / beatsPerBar) + 1})` : ''}`}
+              >
+                <span style={{ fontWeight: (i % beatsPerBar === 0) ? 600 : 400 }}>{(i % beatsPerBar) + 1}</span>
+              </div>
+            ))}
+          </div>
+          {/* Bar markers below the beat markers */}
+          <div style={{ marginTop: '2px', width: '100%', display: 'flex' }}>
+            {Array.from({ length: Math.max(1, bars) }).map((_, b) => (
+              <div
+                key={`bar-marker-${b}`}
+                style={{
+                  flex: `0 0 ${100 / Math.max(1, bars)}%`,
+                  textAlign: 'left',
+                  fontSize: '10px',
+                  color: '#555',
+                  lineHeight: '1',
+                  paddingTop: '2px',
+                  paddingLeft: '2px',
+                  borderRight: b < (bars - 1) ? '1px solid #e8e8e8' : 'none'
+                }}
+                title={`Bar ${b + 1}`}
+              >
+                <span style={{ fontWeight: 600 }}>Bar {b + 1}</span>
+              </div>
+            ))}
           </div>
         </div>
 
