@@ -655,7 +655,6 @@ function Pbind({
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'left', padding: '0.25rem' }}>#</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Start</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Duration</th>
                   <th style={{ textAlign: 'left', padding: '0.25rem' }}>Notes</th>
@@ -694,7 +693,6 @@ function Pbind({
                     return (
                       <>
                         <tr key={`${idx}-${String(p.startBeat)}-${String(p.duration)}`}>
-                          <td style={{ padding: '0.25rem' }}>{row}</td>
                           <td style={{ padding: '0.25rem' }}>{String(p.startBeat)}</td>
                           <td style={{ padding: '0.25rem' }}>
                             {(() => {
@@ -708,11 +706,8 @@ function Pbind({
                               <table className="table is-striped is-narrow is-fullwidth is-hoverable" style={{ margin: 0 }}>
                                 <thead>
                                   <tr>
-                                    <th style={{ padding: '0.25rem' }}>Scale</th>
-                                    <th style={{ padding: '0.25rem' }}>Root</th>
-                                    <th style={{ padding: '0.25rem' }}>Octave</th>
-                                    <th style={{ padding: '0.25rem' }}>Degree</th>
-                                    <th style={{ padding: '0.25rem' }}>Note</th>
+                                    <th style={{ padding: '0.25rem' }}>Root / Scale</th>
+                                    <th style={{ padding: '0.25rem' }}>Oct@Deg</th>
                                     <th style={{ padding: '0.25rem' }}>Legato</th>
                                     <th style={{ padding: '0.25rem' }}>Amp</th>
                                   </tr>
@@ -722,10 +717,6 @@ function Pbind({
                                     if (!n) {
                                       return (
                                         <tr key={`empty-${i}`}>
-                                          <td style={{ padding: '0.25rem' }}>—</td>
-                                          <td style={{ padding: '0.25rem' }}>—</td>
-                                          <td style={{ padding: '0.25rem' }}>—</td>
-                                          <td style={{ padding: '0.25rem' }}>—</td>
                                           <td style={{ padding: '0.25rem' }}>—</td>
                                           <td style={{ padding: '0.25rem' }}>—</td>
                                           <td style={{ padding: '0.25rem' }}>—</td>
@@ -754,13 +745,21 @@ function Pbind({
                                       const o = Math.floor(midi / 12) - 1;
                                       noteName = `${NOTE_NAMES_SHARP[idx]}${o}`;
                                     } while(false);
+                                    const octVal = n.octave;
+                                    const degVal = n.degree;
+                                    const octDegLabel = (
+                                      (octVal == null && degVal == null)
+                                        ? '—'
+                                        : `${octVal == null ? '—' : String(octVal)}@${degVal == null ? '—' : String(degVal)}${noteName !== '—' ? ` (${noteName})` : ''}`
+                                    );
                                     return (
                                       <tr key={`note-${i}`}>
-                                        <td style={{ padding: '0.25rem' }}>{scaleLabel}</td>
-                                        <td style={{ padding: '0.25rem' }}>{rValid ? `${rName} (${rIdx})` : '—'}</td>
-                                        <td style={{ padding: '0.25rem' }}>{octaveLabel}</td>
-                                        <td style={{ padding: '0.25rem' }}>{degreeLabel}</td>
-                                        <td style={{ padding: '0.25rem' }}>{noteName}</td>
+                                        <td style={{ padding: '0.25rem' }}>{
+                                          rValid && scaleLabel !== '—' ? `${rName} (${rIdx}) ${scaleLabel}` :
+                                          rValid ? `${rName} (${rIdx})` :
+                                          scaleLabel
+                                        }</td>
+                                        <td style={{ padding: '0.25rem' }}>{octDegLabel}</td>
                                         <td style={{ padding: '0.25rem' }}>{legatoLabel}</td>
                                         <td style={{ padding: '0.25rem' }}>{ampLabel}</td>
                                       </tr>
@@ -783,7 +782,7 @@ function Pbind({
                               </span>
                             </button>
                             <button
-                              className="button is-small"
+                              className="button is-small is-success"
                               onClick={() => copyPoint(idx)}
                               aria-label="Copy point forward"
                               title="Copy point (shift after its span, set repeat=1)"
@@ -806,7 +805,7 @@ function Pbind({
                           </td>
                         </tr>
                         <tr key={`kb-${idx}`}>
-                          <td colSpan={5} style={{ padding: '0.25rem 0.25rem 0.75rem', overflowX: 'hidden' }}>
+                          <td colSpan={4} style={{ padding: '0.25rem 0.25rem 0.75rem', overflowX: 'hidden' }}>
                             <div style={{ border: '1px solid #e6e6e6', borderRadius: 4, padding: '0.5rem', background: '#fafafa' }}>
                               <div className="is-size-7 has-text-grey" style={{ marginBottom: 4 }}>Keys for this point</div>
                               <PointKeyboard highlighted={highlightedMidis} />
