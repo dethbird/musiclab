@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Fr, toNumber } from '../lib/fraction.js';
+import { Fr, toNumber, add as frAdd, mul as frMul } from '../lib/fraction.js';
 import { buildTimeline, toPbind, fracToScLiteral } from './pbind/buildTimeline.js';
 import PianoKeyboard from './PianoKeyboard.jsx';
 
@@ -150,6 +150,27 @@ function Pbind({
 
   function removePoint(i) {
     setPoints((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function copyPoint(i) {
+    setPoints((prev) => {
+      const src = prev[i];
+      if (!src) return prev;
+      let start, dur;
+      try { start = Fr(src.startBeat); } catch { return prev; }
+      try { dur = Fr(src.duration); } catch { return prev; }
+      const rep = Math.max(1, Number(src.repeat) | 0);
+      // shift by full covered span (dur * repeat), as per request semantics
+      const span = frMul(dur, Fr(rep, 1));
+      const newStart = frAdd(start, span);
+      const newPoint = {
+        startBeat: `${newStart.n}/${newStart.d}`.replace(/\/1$/, ''),
+        duration: String(src.duration),
+        repeat: 1, // always 1 for the copy
+        notes: (Array.isArray(src.notes) ? src.notes : []).map(n => ({ ...n }))
+      };
+      return [...prev, newPoint];
+    });
   }
 
   function updatePoint() {
@@ -759,6 +780,17 @@ function Pbind({
                             >
                               <span className="icon is-small">
                                 <i className="fas fa-edit" aria-hidden="true"></i>
+                              </span>
+                            </button>
+                            <button
+                              className="button is-small"
+                              onClick={() => copyPoint(idx)}
+                              aria-label="Copy point forward"
+                              title="Copy point (shift after its span, set repeat=1)"
+                              style={{ marginRight: '0.25rem' }}
+                            >
+                              <span className="icon is-small">
+                                <i className="fas fa-copy" aria-hidden="true"></i>
                               </span>
                             </button>
                             <button
