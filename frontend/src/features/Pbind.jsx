@@ -39,6 +39,19 @@ function Pbind({
   // Toggle showing per-point keyboards
   const [showKeys, setShowKeys] = useState(true);
 
+  // Helper to sort notes by octave then degree (for stable storage order)
+  const sortNotes = (notes) => {
+    if (!Array.isArray(notes)) return notes;
+    return [...notes].sort((a, b) => {
+      const oa = Number.isFinite(Number(a?.octave)) ? Number(a.octave) : Number.NEGATIVE_INFINITY;
+      const ob = Number.isFinite(Number(b?.octave)) ? Number(b.octave) : Number.NEGATIVE_INFINITY;
+      if (oa !== ob) return oa - ob;
+      const da = Number.isFinite(Number(a?.degree)) ? Number(a.degree) : Number.NEGATIVE_INFINITY;
+      const db = Number.isFinite(Number(b?.degree)) ? Number(b.degree) : Number.NEGATIVE_INFINITY;
+      return da - db;
+    });
+  };
+
   // No midinote: we store degree & octave per point, while scale/root are provided by global state
 
   // Storage modal state
@@ -109,11 +122,13 @@ function Pbind({
         return { ...base, notes };
       });
     try {
-      localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(cleaned));
+      const cleanedSorted = cleaned.map((p) => ({ ...p, notes: sortNotes(p.notes) }));
+      localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(cleanedSorted));
+      setPoints(cleanedSorted);
     } catch (e) {
       // ignore storage failures
+      setPoints(cleaned);
     }
-    setPoints(cleaned);
     setIsStorageModalOpen(false);
   }
 
@@ -279,7 +294,8 @@ function Pbind({
   // Persist points on change
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(points));
+      const pointsForStorage = points.map((p) => ({ ...p, notes: sortNotes(p.notes) }));
+      localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(pointsForStorage));
     } catch {}
   }, [points]);
 
