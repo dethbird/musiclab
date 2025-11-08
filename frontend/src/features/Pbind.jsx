@@ -497,6 +497,24 @@ function Pbind({
     setEditIndex(null);
   }
 
+  // Highlighted keys for the Add/Edit modal (draftPoint)
+  const draftHighlightedMidis = useMemo(() => {
+    const arr = [];
+    const ROOT_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
+    if (!draftPoint || !Array.isArray(draftPoint.notes)) return arr;
+    for (const n of draftPoint.notes) {
+      const deg = Number(n?.degree);
+      const oct = Number(n?.octave);
+      const rootIdx = Number.isFinite(Number(n?.root)) ? ((Number(n.root) % 12) + 12) % 12 : null;
+      if (!Number.isFinite(deg) || !Number.isFinite(oct) || !Number.isFinite(rootIdx)) continue;
+      const rootMidi = (oct + 1) * 12 + rootIdx;
+      const midi = rootMidi + deg;
+      if (Number.isFinite(midi)) arr.push(midi);
+    }
+    // de-duplicate and sort
+    return Array.from(new Set(arr)).sort((a, b) => a - b);
+  }, [draftPoint]);
+
   const timeline = useMemo(() => {
     return buildTimeline({ timeSig: { beatsPerBar, beatUnit }, bars, points });
   }, [beatsPerBar, beatUnit, bars, points]);
@@ -622,42 +640,108 @@ function Pbind({
                 let noteCount = 0;
                 return timeline.chunks.map((c, idx) => {
                   const widthPct = (timeline.durs[idx] / (timeline.totalBeats || 1)) * 100;
-                  const isNote = !c.rest && (c.degree != null);
-                  const degForHue = Number.isFinite(Number(c.degree)) ? Number(c.degree) : 0;
-                  const hue = isNote ? ((Math.round(degForHue) % 12) * 30) : 0;
-                  const bg = isNote ? `hsl(${hue}, 70%, 60%)` : '#dcdcdc';
-                  const showLabel = isNote && widthPct >= 6;
-                  const label = isNote ? String(++noteCount) : '';
+                  const degreesArr = Array.isArray(c.degree)
+                    ? c.degree.filter((v) => Number.isFinite(Number(v)))
+                    : (c.degree != null && Number.isFinite(Number(c.degree)))
+                      ? [Number(c.degree)]
+                      : [];
+                  const isNote = !c.rest && degreesArr.length > 0;
+                  const multi = isNote && degreesArr.length > 1;
+
+                  // Helper to compute a distinct color per degree index
+                  const colorForDeg = (deg) => `hsl(${((Math.round(Number(deg)) % 12 + 12) % 12) * 30}, 70%, 60%)`;
+
+                  // Tooltip text
+                  const tooltip = (() => {
+                    if (!isNote) return `rest, dur: ${String(c.dur)}`;
+                    if (multi) return `chord (${degreesArr.length} notes), degrees [${degreesArr.join(', ')}], dur: ${String(c.dur)}`;
+                    const d = degreesArr[0];
+                    const oct = Array.isArray(c.octave) ? c.octave[0] : c.octave;
+                    return `note #${noteCount + 1} (degree ${d}${oct != null ? ` @ octave ${oct}` : ''}), dur: ${String(c.dur)}`;
+                  })();
+
+                  const showLabel = isNote && !multi && widthPct >= 6;
+                  const label = isNote && !multi ? String(++noteCount) : '';
+
+                  if (!isNote) {
+                    return (
+                      <div
+                        key={idx}
+                        title={tooltip}
+                        style={{
+                          position: 'relative',
+                          width: `${widthPct}%`,
+                          height: '100%',
+                          background: '#dcdcdc',
+                          borderRight: '1px solid rgba(255,255,255,0.9)',
+                        }}
+                      />
+                    );
+                  }
+
+                  // Single note segment
+                  if (!multi) {
+                    const bg = colorForDeg(degreesArr[0] ?? 0);
+                    return (
+                      <div
+                        key={idx}
+                        title={tooltip}
+                        style={{
+                          position: 'relative',
+                          width: `${widthPct}%`,
+                          height: '100%',
+                          background: bg,
+                          borderRight: '1px solid rgba(255,255,255,0.9)',
+                        }}
+                      >
+                        {showLabel && (
+                          <span
+                            style={{
+                              position: 'absolute',
+                              left: '50%',
+                              top: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              fontSize: '10px',
+                              lineHeight: 1,
+                              color: '#fff',
+                              textShadow: '0 1px 2px rgba(0,0,0,0.65)',
+                              pointerEvents: 'none',
+                              userSelect: 'none',
+                            }}
+                          >
+                            {label}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // Multi-note segment: stack strips vertically
                   return (
                     <div
                       key={idx}
-                      title={isNote ? `note #${noteCount} (degree ${c.degree}${c.octave != null ? ` @ octave ${c.octave}` : ''}), dur: ${String(c.dur)}` : `rest, dur: ${String(c.dur)}`}
+                      title={tooltip}
                       style={{
                         position: 'relative',
                         width: `${widthPct}%`,
                         height: '100%',
-                        background: bg,
+                        display: 'flex',
+                        flexDirection: 'column',
                         borderRight: '1px solid rgba(255,255,255,0.9)',
+                        background: 'transparent',
                       }}
                     >
-                      {showLabel && (
-                        <span
+                      {degreesArr.map((d, i) => (
+                        <div
+                          key={`deg-${i}`}
                           style={{
-                            position: 'absolute',
-                            left: '50%',
-                            top: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            fontSize: '10px',
-                            lineHeight: 1,
-                            color: '#fff',
-                            textShadow: '0 1px 2px rgba(0,0,0,0.65)',
-                            pointerEvents: 'none',
-                            userSelect: 'none',
+                            flex: '1 1 0',
+                            background: colorForDeg(d),
+                            // subtle separators between stacked rows
+                            borderTop: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.9)'
                           }}
-                        >
-                          {label}
-                        </span>
-                      )}
+                        />
+                      ))}
                     </div>
                   );
                 });
@@ -1258,6 +1342,14 @@ function Pbind({
                   </div>
                 );
               })()}
+            </div>
+
+            {/* Draft keyboard preview */}
+            <div style={{ marginTop: '0.75rem' }}>
+              <div className="is-size-7 has-text-grey" style={{ marginBottom: 4 }}>Keys for this point (draft)</div>
+              <div style={{ border: '1px solid #e6e6e6', borderRadius: 4, padding: '0.5rem', background: '#fafafa', maxWidth: '100%', overflowX: 'auto' }}>
+                <PointKeyboard highlighted={draftHighlightedMidis} />
+              </div>
             </div>
           </section>
           <footer className="modal-card-foot" style={{ justifyContent: 'flex-end' }}>
