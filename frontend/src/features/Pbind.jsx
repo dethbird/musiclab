@@ -892,7 +892,27 @@ function Pbind({
                                           rValid ? `${rName} (${rIdx})` :
                                           scaleLabel
                                         }</td>
-                                        <td style={{ padding: '0.25rem' }}>{octDegLabel}</td>
+                                        <td style={{ padding: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                          {(() => {
+                                            // Color swatch based on degree (matching timeline hue logic)
+                                            const degForHue = Number.isFinite(Number(n.degree)) ? Number(n.degree) : null;
+                                            const hue = degForHue == null ? 0 : ((Math.round(degForHue) % 12 + 12) % 12) * 30;
+                                            const isNote = degForHue != null;
+                                            return (
+                                              <span
+                                                aria-hidden="true"
+                                                style={{
+                                                  width: '10px',
+                                                  height: '10px',
+                                                  borderRadius: '2px',
+                                                  background: isNote ? `hsl(${hue}, 70%, 60%)` : '#dcdcdc',
+                                                  boxShadow: '0 0 0 1px rgba(0,0,0,0.1)'
+                                                }}
+                                              />
+                                            );
+                                          })()}
+                                          <span>{octDegLabel}</span>
+                                        </td>
                                         <td style={{ padding: '0.25rem' }}>{legatoLabel}</td>
                                         <td style={{ padding: '0.25rem' }}>{ampLabel}</td>
                                       </tr>
