@@ -602,6 +602,47 @@ function Pbind({
     return preamble;
   }, [timeline, compressOutput, loopCount, instrument, bpm]);
 
+  // Preview rows and code ref for syntax highlighting
+  const previewRows = Math.max(8, Math.min(20, (preview.match(/\n/g)?.length || 0) + 2));
+  const previewCodeRef = useRef(null);
+
+  // Highlight preview with highlight.js (dynamic import to avoid bundler init-order issues)
+  useEffect(() => {
+    const el = previewCodeRef.current;
+    if (!el) return;
+    let mounted = true;
+    (async () => {
+      try {
+        // prefer an already-registered global (if previous loader set window.hljs)
+        let hljs = window.hljs;
+        if (!hljs) {
+          // small delay to reduce the chance of touching module init ordering during render
+          await new Promise((r) => setTimeout(r, 0));
+          const core = await import('highlight.js/lib/core');
+          hljs = core.default || core;
+          const js = await import('highlight.js/lib/languages/javascript');
+          const jsLang = js.default || js;
+          hljs.registerLanguage('javascript', jsLang);
+          // expose for dev/other consumers
+          window.hljs = hljs;
+        }
+
+        // highlight the preview string to HTML and set into the code element
+        const out = hljs.highlight(preview || '', { language: 'javascript', ignoreIllegals: true });
+        if (mounted) {
+          el.innerHTML = out.value;
+        }
+      } catch (err) {
+        // fallback: show raw text if highlighting fails
+        if (mounted) el.textContent = preview;
+        // keep debugging info in console only
+        // eslint-disable-next-line no-console
+        console.debug('Pbind: highlight failed', err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [preview]);
+
   // Small wrapper to auto-center the highlighted keys when rendered
   function PointKeyboard({ highlighted }) {
     const kbRef = useRef(null);
@@ -1170,14 +1211,24 @@ function Pbind({
                 </div>
               </div>
             </div>
-            <textarea
-              className="textarea is-small"
-              rows={Math.max(8, Math.min(20, (preview.match(/\n/g)?.length || 0) + 2))}
-              style={{ fontFamily: 'monospace' }}
-              readOnly
-              value={preview}
-              onFocus={(e) => e.target.select()}
-            />
+            <div style={{ position: 'relative' }}>
+              <pre
+                className="preview-code"
+                style={{
+                  fontFamily: 'monospace',
+                  whiteSpace: 'pre',
+                  overflowX: 'auto',
+                  padding: '0.5rem',
+                  border: '1px solid #dbdbdb',
+                  borderRadius: 4,
+                  background: '#fff',
+                  margin: 0,
+                }}
+                aria-hidden={false}
+              >
+                <code ref={previewCodeRef} className="language-javascript hljs" aria-readonly="true" />
+              </pre>
+            </div>
           </div>
         </div>
 

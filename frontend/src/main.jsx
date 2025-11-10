@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import 'bulma/css/bulma.min.css';
+import 'highlight.js/styles/github.css';
 import './main.css';
 
 const rootElement = document.getElementById('root');

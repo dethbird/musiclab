@@ -32,7 +32,7 @@
     "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-v4compatibility.woff2"
   },
   "node_modules/highlight.js/es/core.js": {
-    "file": "core-D2me0s2i.js",
+    "file": "core-DxBwzNRI.js",
     "name": "core",
     "src": "node_modules/highlight.js/es/core.js",
     "isDynamicEntry": true,
@@ -47,16 +47,18 @@
     "isDynamicEntry": true
   },
   "src/main.jsx": {
-    "file": "main-DJDaVTqu.js",
+    "file": "main-B-VJSrf2.js",
     "name": "main",
     "src": "src/main.jsx",
     "isEntry": true,
     "dynamicImports": [
       "node_modules/highlight.js/es/core.js",
+      "node_modules/highlight.js/es/languages/javascript.js",
+      "node_modules/highlight.js/es/core.js",
       "node_modules/highlight.js/es/languages/javascript.js"
     ],
     "css": [
-      "main--OrnWVqg.css"
+      "main-DxrgSI6Y.css"
     ],
     "assets": [
       "fa-brands-400-D_cYUPeE.woff2",
