@@ -371,34 +371,43 @@ function Pbind({
     } catch {}
   }, [showKeys]);
 
-  // Dynamically load and register highlight.js (safe, async)
+  // Dynamically load highlight.js core and register the SuperCollider language once
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const hljsModule = await import('highlight.js/lib/core');
-        const hljs = hljsModule && (hljsModule.default || hljsModule);
-        const jsModule = await import('highlight.js/lib/languages/javascript');
-        const jsLang = jsModule && (jsModule.default || jsModule);
-          if (hljs && jsLang) {
-            try {
-              hljs.registerLanguage('javascript', jsLang);
-            } catch (e) {
-              // if already registered, ignore
+        const coreModule = await import('highlight.js/lib/core');
+        const hljs = coreModule && (coreModule.default || coreModule);
+        if (!hljs) throw new Error('highlight.js core not resolved');
+
+        if (!hljs.getLanguage?.('supercollider')) {
+          try {
+            const scModule = await import('../lib/highlightjs-supercollider.js');
+            const registerSuperCollider = scModule?.default;
+            const definer = scModule?.supercollider;
+            if (typeof registerSuperCollider === 'function') {
+              registerSuperCollider(hljs);
+            } else if (typeof definer === 'function') {
+              hljs.registerLanguage('supercollider', definer);
             }
-            if (mounted && typeof window !== 'undefined') {
-              // expose for debugging/verification in browser console
-              window.hljs = hljs;
-            }
-            // lightweight log to help verification in devtools
-            // expose a visible flag and log at info level so it's visible in default console filters
-            if (typeof window !== 'undefined') {
-              // mark loaded
-              window.__PbindHljsLoaded = true;
-            }
+          } catch (langErr) {
             // eslint-disable-next-line no-console
-            console.log('Pbind: highlight.js loaded (window.__PbindHljsLoaded=true, window.hljs available)');
+            console.warn('Pbind: failed to register SuperCollider language', langErr);
           }
+        }
+
+        if (mounted && typeof window !== 'undefined') {
+          window.hljs = hljs;
+          window.__PbindHljsLoaded = true;
+        }
+
+        if (hljs.getLanguage?.('supercollider')) {
+          // eslint-disable-next-line no-console
+          console.info('Pbind: highlight.js SuperCollider language ready');
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn('Pbind: highlight.js loaded without SuperCollider language; preview will fall back to highlightAuto');
+        }
       } catch (e) {
         // eslint-disable-next-line no-console
         console.warn('Pbind: failed to load highlight.js', e);
@@ -618,19 +627,55 @@ function Pbind({
         if (!hljs) {
           // small delay to reduce the chance of touching module init ordering during render
           await new Promise((r) => setTimeout(r, 0));
-          const core = await import('highlight.js/lib/core');
-          hljs = core.default || core;
-          const js = await import('highlight.js/lib/languages/javascript');
-          const jsLang = js.default || js;
-          hljs.registerLanguage('javascript', jsLang);
-          // expose for dev/other consumers
-          window.hljs = hljs;
+          const coreModule = await import('highlight.js/lib/core');
+          hljs = coreModule && (coreModule.default || coreModule);
+          if (hljs && typeof window !== 'undefined') {
+            window.hljs = hljs;
+          }
+        }
+
+        if (hljs && !hljs.getLanguage?.('supercollider')) {
+          try {
+            const scModule = await import('../lib/highlightjs-supercollider.js');
+            const registerSuperCollider = scModule?.default;
+            const definer = scModule?.supercollider;
+            if (typeof registerSuperCollider === 'function') {
+              registerSuperCollider(hljs);
+            } else if (typeof definer === 'function') {
+              hljs.registerLanguage('supercollider', definer);
+            }
+          } catch (langErr) {
+            // eslint-disable-next-line no-console
+            console.debug('Pbind: SuperCollider language load failed', langErr);
+          }
         }
 
         // highlight the preview string to HTML and set into the code element
-        const out = hljs.highlight(preview || '', { language: 'javascript', ignoreIllegals: true });
+        let highlighted = null;
+        if (hljs?.getLanguage?.('supercollider')) {
+          try {
+            highlighted = hljs.highlight(preview || '', { language: 'supercollider', ignoreIllegals: true });
+          } catch (scErr) {
+            // eslint-disable-next-line no-console
+            console.debug('Pbind: highlight supercollider failed', scErr);
+          }
+        }
+
+        if (!highlighted && hljs?.highlightAuto) {
+          try {
+            highlighted = hljs.highlightAuto(preview || '');
+          } catch (autoErr) {
+            // eslint-disable-next-line no-console
+            console.debug('Pbind: highlightAuto failed', autoErr);
+          }
+        }
+
         if (mounted) {
-          el.innerHTML = out.value;
+          if (highlighted?.value) {
+            el.innerHTML = highlighted.value;
+          } else {
+            el.textContent = preview;
+          }
         }
       } catch (err) {
         // fallback: show raw text if highlighting fails
@@ -1226,7 +1271,7 @@ function Pbind({
                 }}
                 aria-hidden={false}
               >
-                <code ref={previewCodeRef} className="language-javascript hljs" aria-readonly="true" />
+                <code ref={previewCodeRef} className="language-supercollider hljs" aria-readonly="true" />
               </pre>
             </div>
           </div>

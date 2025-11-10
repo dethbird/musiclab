@@ -32,7 +32,7 @@
     "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-v4compatibility.woff2"
   },
   "node_modules/highlight.js/es/core.js": {
-    "file": "core-DxBwzNRI.js",
+    "file": "core-DwCy7F4k.js",
     "name": "core",
     "src": "node_modules/highlight.js/es/core.js",
     "isDynamicEntry": true,
@@ -40,22 +40,22 @@
       "src/main.jsx"
     ]
   },
-  "node_modules/highlight.js/es/languages/javascript.js": {
-    "file": "javascript-BKRaQes9.js",
-    "name": "javascript",
-    "src": "node_modules/highlight.js/es/languages/javascript.js",
+  "src/lib/highlightjs-supercollider.js": {
+    "file": "highlightjs-supercollider-Bk-B-dpG.js",
+    "name": "highlightjs-supercollider",
+    "src": "src/lib/highlightjs-supercollider.js",
     "isDynamicEntry": true
   },
   "src/main.jsx": {
-    "file": "main-B-VJSrf2.js",
+    "file": "main-DKExUsTi.js",
     "name": "main",
     "src": "src/main.jsx",
     "isEntry": true,
     "dynamicImports": [
       "node_modules/highlight.js/es/core.js",
-      "node_modules/highlight.js/es/languages/javascript.js",
+      "src/lib/highlightjs-supercollider.js",
       "node_modules/highlight.js/es/core.js",
-      "node_modules/highlight.js/es/languages/javascript.js"
+      "src/lib/highlightjs-supercollider.js"
     ],
     "css": [
       "main-DxrgSI6Y.css"
