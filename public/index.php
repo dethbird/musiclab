@@ -93,12 +93,20 @@ $app->get('/', function (ServerRequestInterface $request, ResponseInterface $res
 		$preloadTags .= '<link rel="modulepreload" href="' . htmlspecialchars($href, ENT_QUOTES) . '">';
 	}
 
-	// Favicon links (look for files in the public assets folder)
+	// Favicon links (only emit if files exist in the public assets folder)
 	$faviconTags = '';
-	$faviconTags .= '<link rel="icon" href="' . rtrim($assetBaseUri, '/') . '/favicon.ico">';
-	$faviconTags .= '<link rel="icon" type="image/png" sizes="192x192" href="' . rtrim($assetBaseUri, '/') . '/favicon-192.png">';
-	$faviconTags .= '<link rel="icon" type="image/png" href="' . rtrim($assetBaseUri, '/') . '/favicon.png">';
-	$faviconTags .= '<link rel="apple-touch-icon" href="' . rtrim($assetBaseUri, '/') . '/apple-touch-icon.png">';
+	$faviconFiles = [
+		['path' => __DIR__ . '/assets/favicon.ico', 'tag' => '<link rel="icon" href="%s">'],
+		['path' => __DIR__ . '/assets/favicon-192.png', 'tag' => '<link rel="icon" type="image/png" sizes="192x192" href="%s">'],
+		['path' => __DIR__ . '/assets/favicon.png', 'tag' => '<link rel="icon" type="image/png" href="%s">'],
+		['path' => __DIR__ . '/assets/apple-touch-icon.png', 'tag' => '<link rel="apple-touch-icon" href="%s">'],
+	];
+	foreach ($faviconFiles as $f) {
+		if (is_file($f['path'])) {
+			$href = rtrim($assetBaseUri, '/') . '/' . basename($f['path']);
+			$faviconTags .= sprintf($f['tag'], htmlspecialchars($href, ENT_QUOTES));
+		}
+	}
 
 	$styleTags = '';
 	foreach ($assets['styles'] as $href) {

@@ -371,6 +371,42 @@ function Pbind({
     } catch {}
   }, [showKeys]);
 
+  // Dynamically load and register highlight.js (safe, async)
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const hljsModule = await import('highlight.js/lib/core');
+        const hljs = hljsModule && (hljsModule.default || hljsModule);
+        const jsModule = await import('highlight.js/lib/languages/javascript');
+        const jsLang = jsModule && (jsModule.default || jsModule);
+          if (hljs && jsLang) {
+            try {
+              hljs.registerLanguage('javascript', jsLang);
+            } catch (e) {
+              // if already registered, ignore
+            }
+            if (mounted && typeof window !== 'undefined') {
+              // expose for debugging/verification in browser console
+              window.hljs = hljs;
+            }
+            // lightweight log to help verification in devtools
+            // expose a visible flag and log at info level so it's visible in default console filters
+            if (typeof window !== 'undefined') {
+              // mark loaded
+              window.__PbindHljsLoaded = true;
+            }
+            // eslint-disable-next-line no-console
+            console.log('Pbind: highlight.js loaded (window.__PbindHljsLoaded=true, window.hljs available)');
+          }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('Pbind: failed to load highlight.js', e);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
   // Close Add modal on Escape key
   useEffect(() => {
     if (!isAddModalOpen) return;
