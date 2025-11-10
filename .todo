@@ -1,0 +1,3 @@
+- [x] Add highlightjs-supercollider dependency
+- [x] Update Pbind highlight loader to use package plugin
+- [x] Build frontend to verify highlight loads without errors

@@ -371,6 +371,51 @@ function Pbind({
     } catch {}
   }, [showKeys]);
 
+  // Dynamically load highlight.js core and register the SuperCollider language once
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const coreModule = await import('highlight.js/lib/core');
+        const hljs = coreModule && (coreModule.default || coreModule);
+        if (!hljs) throw new Error('highlight.js core not resolved');
+
+        if (!hljs.getLanguage?.('supercollider')) {
+          try {
+            const scModule = await import('../lib/highlightjs-supercollider.js');
+            const registerSuperCollider = scModule?.default;
+            const definer = scModule?.supercollider;
+            if (typeof registerSuperCollider === 'function') {
+              registerSuperCollider(hljs);
+            } else if (typeof definer === 'function') {
+              hljs.registerLanguage('supercollider', definer);
+            }
+          } catch (langErr) {
+            // eslint-disable-next-line no-console
+            console.warn('Pbind: failed to register SuperCollider language', langErr);
+          }
+        }
+
+        if (mounted && typeof window !== 'undefined') {
+          window.hljs = hljs;
+          window.__PbindHljsLoaded = true;
+        }
+
+        if (hljs.getLanguage?.('supercollider')) {
+          // eslint-disable-next-line no-console
+          console.info('Pbind: highlight.js SuperCollider language ready');
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn('Pbind: highlight.js loaded without SuperCollider language; preview will fall back to highlightAuto');
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('Pbind: failed to load highlight.js', e);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
   // Close Add modal on Escape key
   useEffect(() => {
     if (!isAddModalOpen) return;
@@ -555,7 +600,9 @@ function Pbind({
       '// Pick a destination by index (change 0 if needed):',
       '~m = MIDIOut(0);',
       '~m.latency = 0.0;',
+      ')',
       '',
+      '(',
       '// Tempo',
       tempoLine,
       '',
@@ -565,6 +612,129 @@ function Pbind({
     ].join('\n');
     return preamble;
   }, [timeline, compressOutput, loopCount, instrument, bpm]);
+
+  // Preview rows and code ref for syntax highlighting
+  const previewRows = Math.max(8, Math.min(20, (preview.match(/\n/g)?.length || 0) + 2));
+  const previewCodeRef = useRef(null);
+  const [copiedPreview, setCopiedPreview] = useState(false);
+
+  function copyPreviewToClipboard() {
+    if (!preview) return;
+    // preferred modern API
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(preview).then(() => {
+        setCopiedPreview(true);
+        setTimeout(() => setCopiedPreview(false), 1500);
+      }).catch((e) => {
+        // fallback to execCommand
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = preview;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          setCopiedPreview(true);
+          setTimeout(() => setCopiedPreview(false), 1500);
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.debug('copy to clipboard failed', err);
+        }
+      });
+      return;
+    }
+    // legacy fallback
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = preview;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopiedPreview(true);
+      setTimeout(() => setCopiedPreview(false), 1500);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.debug('copy to clipboard failed', err);
+    }
+  }
+
+  // Highlight preview with highlight.js (dynamic import to avoid bundler init-order issues)
+  useEffect(() => {
+    const el = previewCodeRef.current;
+    if (!el) return;
+    let mounted = true;
+    (async () => {
+      try {
+        // prefer an already-registered global (if previous loader set window.hljs)
+        let hljs = window.hljs;
+        if (!hljs) {
+          // small delay to reduce the chance of touching module init ordering during render
+          await new Promise((r) => setTimeout(r, 0));
+          const coreModule = await import('highlight.js/lib/core');
+          hljs = coreModule && (coreModule.default || coreModule);
+          if (hljs && typeof window !== 'undefined') {
+            window.hljs = hljs;
+          }
+        }
+
+        if (hljs && !hljs.getLanguage?.('supercollider')) {
+          try {
+            const scModule = await import('../lib/highlightjs-supercollider.js');
+            const registerSuperCollider = scModule?.default;
+            const definer = scModule?.supercollider;
+            if (typeof registerSuperCollider === 'function') {
+              registerSuperCollider(hljs);
+            } else if (typeof definer === 'function') {
+              hljs.registerLanguage('supercollider', definer);
+            }
+          } catch (langErr) {
+            // eslint-disable-next-line no-console
+            console.debug('Pbind: SuperCollider language load failed', langErr);
+          }
+        }
+
+        // highlight the preview string to HTML and set into the code element
+        let highlighted = null;
+        if (hljs?.getLanguage?.('supercollider')) {
+          try {
+            highlighted = hljs.highlight(preview || '', { language: 'supercollider', ignoreIllegals: true });
+          } catch (scErr) {
+            // eslint-disable-next-line no-console
+            console.debug('Pbind: highlight supercollider failed', scErr);
+          }
+        }
+
+        if (!highlighted && hljs?.highlightAuto) {
+          try {
+            highlighted = hljs.highlightAuto(preview || '');
+          } catch (autoErr) {
+            // eslint-disable-next-line no-console
+            console.debug('Pbind: highlightAuto failed', autoErr);
+          }
+        }
+
+        if (mounted) {
+          if (highlighted?.value) {
+            el.innerHTML = highlighted.value;
+          } else {
+            el.textContent = preview;
+          }
+        }
+      } catch (err) {
+        // fallback: show raw text if highlighting fails
+        if (mounted) el.textContent = preview;
+        // keep debugging info in console only
+        // eslint-disable-next-line no-console
+        console.debug('Pbind: highlight failed', err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [preview]);
 
   // Small wrapper to auto-center the highlighted keys when rendered
   function PointKeyboard({ highlighted }) {
@@ -1064,7 +1234,23 @@ function Pbind({
         </div>
 
         <div className="box">
-          <h3 className="title is-6">Pbind preview</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <h3 className="title is-6" style={{ margin: 0 }}>Pbind preview</h3>
+            <div>
+              <button
+                type="button"
+                className="button is-small"
+                onClick={copyPreviewToClipboard}
+                aria-label="Copy Pbind preview to clipboard"
+                title="Copy Pbind preview"
+              >
+                <span className="icon is-small" style={{ marginRight: 6 }}>
+                  <i className="fas fa-copy" aria-hidden="true"></i>
+                </span>
+                <span>{copiedPreview ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+          </div>
           <div className="is-size-7">
             <div style={{ marginBottom: '0.5rem' }}>
               <div><strong>Total beats:</strong> {timeline.totalBeats}</div>
@@ -1134,14 +1320,24 @@ function Pbind({
                 </div>
               </div>
             </div>
-            <textarea
-              className="textarea is-small"
-              rows={Math.max(8, Math.min(20, (preview.match(/\n/g)?.length || 0) + 2))}
-              style={{ fontFamily: 'monospace' }}
-              readOnly
-              value={preview}
-              onFocus={(e) => e.target.select()}
-            />
+            <div style={{ position: 'relative' }}>
+              <pre
+                className="preview-code"
+                style={{
+                  fontFamily: 'monospace',
+                  whiteSpace: 'pre',
+                  overflowX: 'auto',
+                  padding: '0.5rem',
+                  border: '1px solid #dbdbdb',
+                  borderRadius: 4,
+                  background: '#fff',
+                  margin: 0,
+                }}
+                aria-hidden={false}
+              >
+                <code ref={previewCodeRef} className="language-supercollider hljs" aria-readonly="true" />
+              </pre>
+            </div>
           </div>
         </div>
 
