@@ -283,5 +283,5 @@ export function toPbind({ durs, dursFr, degrees, octaves, roots, scales, legatos
     ? (compress ? compressWithPn(durItems, (s) => s).join(', ') : durItems.join(', '))
     : '';
 
-  return `(\nPbind(\n  \\instrument, ${instrumentSym},\n  \\scale, Pseq([${scaleLit}], ${repeatsLit}),\n  \\root,  Pseq([${rootLit}], ${repeatsLit}),\n  \\octave, Pseq([${octaveLit}], ${repeatsLit}),\n  \\degree, Pseq([${degreeLit}], ${repeatsLit}),\n  \\legato, Pseq([${legatoLit}], ${repeatsLit}),\n  \\amp, Pseq([${ampLit}], ${repeatsLit}),\n  \\strum, Pseq([${strumLit}], ${repeatsLit}),\n  \\dur,  Pseq([${durLit}], ${repeatsLit})\n).play\n)`;
+  return `(\nPbind(\n  \\instrument, ${instrumentSym},\n  \\scale, Pseq([${scaleLit}], ${repeatsLit}),\n  \\root,  Pseq([${rootLit}], ${repeatsLit}),\n  \\octave, Pseq([${octaveLit}], ${repeatsLit}),\n  \\degree, Pseq([${degreeLit}], ${repeatsLit}),\n  \\legato, Pseq([${legatoLit}], ${repeatsLit}),\n  \\amp, Pseq([${ampLit}], ${repeatsLit}),\n  \\strum, Pseq([${strumLit}], ${repeatsLit}),\n  \\dur,  Pseq([${durLit}], ${repeatsLit})\n).play(TempoClock.default)\n)`;
 }

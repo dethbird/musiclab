@@ -25,6 +25,8 @@ function Pbind({
   const [beatsPerBar, setBeatsPerBar] = useState(4);
   const [beatUnit, setBeatUnit] = useState(4);
   const [bars, setBars] = useState(1);
+  // Tempo for SC preview and (future) MIDI export
+  const [bpm, setBpm] = useState(120);
 
   const [points, setPoints] = useState([]);
 
@@ -334,6 +336,7 @@ function Pbind({
           if (typeof o.compressOutput === 'boolean') setCompressOutput(o.compressOutput);
           if (Object.prototype.hasOwnProperty.call(o, 'loopCount')) setLoopCount(String(o.loopCount ?? ''));
           if (typeof o.instrument === 'string') setInstrument(o.instrument);
+          if (Number.isFinite(Number(o.bpm))) setBpm(Number(o.bpm));
         }
       }
     } catch {}
@@ -356,10 +359,10 @@ function Pbind({
     try {
       localStorage.setItem(
         STORAGE_KEY_PREVIEW,
-        JSON.stringify({ compressOutput, loopCount, instrument })
+        JSON.stringify({ compressOutput, loopCount, instrument, bpm })
       );
     } catch {}
-  }, [compressOutput, loopCount, instrument]);
+  }, [compressOutput, loopCount, instrument, bpm]);
 
   // Persist showKeys on change
   useEffect(() => {
@@ -527,8 +530,41 @@ function Pbind({
     return buildTimeline({ timeSig: { beatsPerBar, beatUnit }, bars, points });
   }, [beatsPerBar, beatUnit, bars, points]);
   const preview = useMemo(() => {
-    return toPbind(timeline, { compress: compressOutput, loopCount: loopCount, instrument });
-  }, [timeline, compressOutput, loopCount, instrument]);
+    // Base Pbind from timeline
+    const base = toPbind(timeline, { compress: compressOutput, loopCount: loopCount, instrument });
+    // Extract inner Pbind(...) block without wrapping parentheses for embedding in our SC preamble
+    let lines = base.split('\n');
+    if (lines.length >= 2 && lines[0].trim() === '(' && lines[lines.length - 1].trim() === ')') {
+      lines = lines.slice(1, -1);
+    }
+    // Inject MIDI fields (\type and \midiout) after the instrument line if present; otherwise right after Pbind(
+    const idxInstrument = lines.findIndex((l) => l.trim().startsWith('\\instrument'));
+    const insertAt = idxInstrument >= 0 ? idxInstrument + 1 : Math.max(0, lines.findIndex((l) => l.includes('Pbind(')) + 1);
+    if (insertAt > 0) {
+      lines.splice(insertAt, 0, '  \\type, \\midi,', '  \\midiout, ~m,');
+    }
+    // Tempo line from BPM (SC expects beats per second)
+    const bpmNum = Number.isFinite(Number(bpm)) ? Number(bpm) : 120;
+    const tempoLine = `TempoClock.default.tempo = ${bpmNum}/60;`;
+    // Build the final SC snippet with MIDI setup preamble
+    const preamble = [
+      '(',
+      '// MIDI setup',
+      'MIDIClient.init;',
+      'MIDIClient.destinations.do({ |e, i| [i, e.device, e.name].postln; });',
+      '// Pick a destination by index (change 0 if needed):',
+      '~m = MIDIOut(0);',
+      '~m.latency = 0.0;',
+      '',
+      '// Tempo',
+      tempoLine,
+      '',
+      '// Pattern',
+      ...lines,
+      ')'
+    ].join('\n');
+    return preamble;
+  }, [timeline, compressOutput, loopCount, instrument, bpm]);
 
   // Small wrapper to auto-center the highlighted keys when rendered
   function PointKeyboard({ highlighted }) {
@@ -1052,33 +1088,50 @@ function Pbind({
                 Compress output with Pn()
               </label>
             </div>
-            {/* Instrument and loop count on the next row */}
-            <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <label htmlFor="instrument" className="label is-small" style={{ margin: 0 }}>Instrument</label>
-                <input
-                  id="instrument"
-                  className="input is-small"
-                  type="text"
-                  placeholder="default or pmGrowl"
-                  value={instrument}
-                  onChange={(e) => setInstrument(e.target.value)}
-                  style={{ width: '12rem' }}
-                />
+            {/* Instrument / Loop count / BPM aligned with Bulma columns */}
+            <div className="columns is-mobile is-multiline" style={{ marginBottom: '0.75rem' }}>
+              <div className="column is-12-mobile is-4-tablet">
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label htmlFor="instrument" className="label is-small" style={{ marginBottom: '0.2rem' }}>Instrument</label>
+                  <input
+                    id="instrument"
+                    className="input is-small"
+                    type="text"
+                    placeholder="default or pmGrowl"
+                    value={instrument}
+                    onChange={(e) => setInstrument(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <label htmlFor="loop-count" className="label is-small" style={{ margin: 0 }}>Loop count</label>
-                <input
-                  id="loop-count"
-                  className="input is-small"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="inf"
-                  value={loopCount}
-                  onChange={(e) => setLoopCount(e.target.value)}
-                  style={{ width: '6rem' }}
-                />
+              <div className="column is-6-mobile is-4-tablet">
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label htmlFor="loop-count" className="label is-small" style={{ marginBottom: '0.2rem' }}>Loop count</label>
+                  <input
+                    id="loop-count"
+                    className="input is-small"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="inf"
+                    value={loopCount}
+                    onChange={(e) => setLoopCount(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="column is-6-mobile is-4-tablet">
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label htmlFor="bpm" className="label is-small" style={{ marginBottom: '0.2rem' }}>BPM</label>
+                  <input
+                    id="bpm"
+                    className="input is-small"
+                    type="number"
+                    min={1}
+                    step={1}
+                    placeholder="120"
+                    value={bpm}
+                    onChange={(e) => setBpm(Math.max(1, Number(e.target.value) | 0))}
+                  />
+                </div>
               </div>
             </div>
             <textarea
