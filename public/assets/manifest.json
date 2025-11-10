@@ -32,7 +32,7 @@
     "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-v4compatibility.woff2"
   },
   "node_modules/highlight.js/es/core.js": {
-    "file": "core-B6UxynbO.js",
+    "file": "core-CKK4UOpb.js",
     "name": "core",
     "src": "node_modules/highlight.js/es/core.js",
     "isDynamicEntry": true,
@@ -47,7 +47,7 @@
     "isDynamicEntry": true
   },
   "src/main.jsx": {
-    "file": "main-BuxpEpEd.js",
+    "file": "main-D72OVP_8.js",
     "name": "main",
     "src": "src/main.jsx",
     "isEntry": true,

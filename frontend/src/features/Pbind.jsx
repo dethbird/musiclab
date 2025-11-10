@@ -616,6 +616,52 @@ function Pbind({
   // Preview rows and code ref for syntax highlighting
   const previewRows = Math.max(8, Math.min(20, (preview.match(/\n/g)?.length || 0) + 2));
   const previewCodeRef = useRef(null);
+  const [copiedPreview, setCopiedPreview] = useState(false);
+
+  function copyPreviewToClipboard() {
+    if (!preview) return;
+    // preferred modern API
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(preview).then(() => {
+        setCopiedPreview(true);
+        setTimeout(() => setCopiedPreview(false), 1500);
+      }).catch((e) => {
+        // fallback to execCommand
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = preview;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          setCopiedPreview(true);
+          setTimeout(() => setCopiedPreview(false), 1500);
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.debug('copy to clipboard failed', err);
+        }
+      });
+      return;
+    }
+    // legacy fallback
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = preview;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopiedPreview(true);
+      setTimeout(() => setCopiedPreview(false), 1500);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.debug('copy to clipboard failed', err);
+    }
+  }
 
   // Highlight preview with highlight.js (dynamic import to avoid bundler init-order issues)
   useEffect(() => {
@@ -1188,7 +1234,23 @@ function Pbind({
         </div>
 
         <div className="box">
-          <h3 className="title is-6">Pbind preview</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <h3 className="title is-6" style={{ margin: 0 }}>Pbind preview</h3>
+            <div>
+              <button
+                type="button"
+                className="button is-small"
+                onClick={copyPreviewToClipboard}
+                aria-label="Copy Pbind preview to clipboard"
+                title="Copy Pbind preview"
+              >
+                <span className="icon is-small" style={{ marginRight: 6 }}>
+                  <i className="fas fa-copy" aria-hidden="true"></i>
+                </span>
+                <span>{copiedPreview ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+          </div>
           <div className="is-size-7">
             <div style={{ marginBottom: '0.5rem' }}>
               <div><strong>Total beats:</strong> {timeline.totalBeats}</div>
