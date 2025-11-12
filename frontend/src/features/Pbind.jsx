@@ -40,6 +40,8 @@ function Pbind({
   const [instrument, setInstrument] = useState(''); // blank => \\default (handled in toPbind)
   // Toggle showing per-point keyboards
   const [showKeys, setShowKeys] = useState(true);
+  // Optional DAW alignment: add a throw-away note at t=0 to the preview export
+  const [addDawAlignNote, setAddDawAlignNote] = useState(false);
 
   // Helper to sort notes by octave then degree (for stable storage order)
   const sortNotes = (notes) => {
@@ -338,6 +340,7 @@ function Pbind({
           if (Object.prototype.hasOwnProperty.call(o, 'loopCount')) setLoopCount(String(o.loopCount ?? ''));
           if (typeof o.instrument === 'string') setInstrument(o.instrument);
           if (Number.isFinite(Number(o.bpm))) setBpm(Number(o.bpm));
+          if (typeof o.addDawAlignNote === 'boolean') setAddDawAlignNote(Boolean(o.addDawAlignNote));
         }
       }
     } catch {}
@@ -360,10 +363,10 @@ function Pbind({
     try {
       localStorage.setItem(
         STORAGE_KEY_PREVIEW,
-        JSON.stringify({ compressOutput, loopCount, instrument, bpm })
+        JSON.stringify({ compressOutput, loopCount, instrument, bpm, addDawAlignNote })
       );
     } catch {}
-  }, [compressOutput, loopCount, instrument, bpm]);
+  }, [compressOutput, loopCount, instrument, bpm, addDawAlignNote]);
 
   // Persist showKeys on change
   useEffect(() => {
@@ -593,6 +596,19 @@ function Pbind({
     const bpmNum = Number.isFinite(Number(bpm)) ? Number(bpm) : 120;
     const tempoLine = `TempoClock.default.tempo = ${bpmNum}/60;`;
     // Build the final SC snippet with MIDI setup preamble
+    // Optional alignment note Pbind (plays at t=0 only)
+    const alignLines = !addDawAlignNote ? [] : [
+      '// Alignment note for DAW timeline (optional, single strike at t=0)',
+      'Pbind(',
+      '  \\type, \\midi,',
+      '  \\midiout, ~m,',
+      '  \\midinote, Pseq([108], 1),  // C8',
+      '  \\amp, Pseq([1], 1),',
+      '  \\dur, Pseq([1/16], 1),',
+      ').play(TempoClock.default);',
+      '',
+    ];
+
     const preamble = [
       '(',
       '// MIDI setup',
@@ -607,12 +623,13 @@ function Pbind({
       '// Tempo',
       tempoLine,
       '',
+      ...alignLines,
       '// Pattern',
       ...lines,
       ')'
     ].join('\n');
     return preamble;
-  }, [timeline, compressOutput, loopCount, instrument, bpm]);
+  }, [timeline, compressOutput, loopCount, instrument, bpm, addDawAlignNote]);
 
   // Preview rows and code ref for syntax highlighting
   const previewRows = Math.max(8, Math.min(20, (preview.match(/\n/g)?.length || 0) + 2));
@@ -1263,8 +1280,8 @@ function Pbind({
                 ]
               </div>
             </div>
-            {/* Compress on its own line */}
-            <div style={{ marginBottom: '0.5rem' }}>
+            {/* Compress and alignment toggles */}
+            <div style={{ marginBottom: '0.5rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <label className="checkbox is-size-7" style={{ display: 'inline-flex', alignItems: 'center' }}>
                 <input
                   type="checkbox"
@@ -1273,6 +1290,16 @@ function Pbind({
                   style={{ marginRight: '0.4rem' }}
                 />
                 Compress output with Pn()
+              </label>
+
+              <label className="checkbox is-size-7" style={{ display: 'inline-flex', alignItems: 'center' }} title="Add a throw-away note at t=0 (C8, short) for aligning in a DAW">
+                <input
+                  type="checkbox"
+                  checked={addDawAlignNote}
+                  onChange={(e) => setAddDawAlignNote(e.target.checked)}
+                  style={{ marginRight: '0.4rem' }}
+                />
+                Add throw-away note at t = 0 for DAW alignment
               </label>
             </div>
             {/* Instrument / Loop count / BPM aligned with Bulma columns */}

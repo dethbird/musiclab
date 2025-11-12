@@ -154,6 +154,7 @@ Pbind(
 6) Align and clean up
 - After recording, align the take’s start so the throw-away note transient lands exactly at bar 1 beat 1 (or your intended start).
 - Delete the throw-away alignment note.
+- Uncheck legato from midi clip details.
 
 
 ## Notes and conventions
