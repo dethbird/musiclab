@@ -125,9 +125,10 @@ function Pbind({
         return { ...base, strum, notes };
       });
     try {
-      const cleanedSorted = cleaned.map((p) => ({ ...p, notes: sortNotes(p.notes) }));
-      localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(cleanedSorted));
-      setPoints(cleanedSorted);
+      // Preserve the exact order provided by the user in the storage textarea.
+      // Do not automatically sort notes here — user requested manual reordering will be added later.
+      localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(cleaned));
+      setPoints(cleaned);
     } catch (e) {
       // ignore storage failures
       setPoints(cleaned);
@@ -301,8 +302,8 @@ function Pbind({
   // Persist points on change
   useEffect(() => {
     try {
-      const pointsForStorage = points.map((p) => ({ ...p, notes: sortNotes(p.notes) }));
-      localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(pointsForStorage));
+      // Persist the points array as-is. Do not reorder notes on persist — keep exact in-memory order.
+      localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(points));
     } catch {}
   }, [points]);
 
@@ -1460,232 +1461,272 @@ function Pbind({
                 </button>
               </div>
             </div>
-            {/* Note selector */}
-            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.25rem' }}>
-              <span className="is-size-7" style={{ opacity: 0.7 }}>Select note:</span>
-              {(draftPoint?.notes || []).map((_, i) => (
-                <button key={`sel-note-${i}`} type="button"
-                        className={`button is-small ${i === activeNoteIdx ? 'is-primary is-light' : ''}`}
-                        onClick={() => setActiveNoteIdx(i)}
-                >{i + 1}</button>
-              ))}
-            </div>
-            {/* Row 2: pitch selectors + articulation/dynamics */}
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-              {(() => {
+            {/* Render a row of inputs for each note in the draft (no selector) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.25rem' }}>
+              {(draftPoint?.notes || []).map((n0, noteIdx) => {
                 const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
-                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[activeNoteIdx]) || {};
-                const rootIdx = Number.isFinite(Number(n0.root)) ? ((Number(n0.root) % 12) + 12) % 12 : 0;
+                const rootIdx = Number.isFinite(Number(n0?.root)) ? ((Number(n0.root) % 12) + 12) % 12 : 0;
                 const rootName = NOTE_NAMES[rootIdx] || 'C';
-                return (
-                  <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <label htmlFor="note-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Key</label>
-                    <div className="select is-small">
-                      <select
-                        id="note-select-pbind"
-                        value={rootName}
-                        aria-label="Key name"
-                        onChange={(e) => {
-                          const name = e.target.value;
-                          const idx = NOTE_NAMES.indexOf(name);
-                          setDraftPoint((dp) => {
-                            if (!dp) return dp;
-                            const notes = [...dp.notes];
-                            const first = { ...(notes[activeNoteIdx] || {}) };
-                            first.root = idx >= 0 ? idx : 0;
-                            notes[activeNoteIdx] = first;
-                            return { ...dp, notes };
-                          });
-                        }}
-                      >
-                        {NOTE_NAMES.map((nm) => (
-                          <option key={nm} value={nm}>{nm}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                );
-              })()}
-              {(() => {
-                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[activeNoteIdx]) || {};
-                const draftScaleId = typeof n0.scale === 'string' ? n0.scale : '';
-                return (
-                  <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <label htmlFor="scale-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Scale</label>
-                    <div className="select is-small">
-                      <select
-                        id="scale-select-pbind"
-                        value={draftScaleId}
-                        aria-label="Selected scale"
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setDraftPoint((dp) => {
-                            if (!dp) return dp;
-                            const notes = [...dp.notes];
-                            const first = { ...(notes[activeNoteIdx] || {}) };
-                            first.scale = val;
-                            notes[activeNoteIdx] = first;
-                            return { ...dp, notes };
-                          });
-                        }}
-                        style={{ minWidth: '160px' }}
-                      >
-                        <option value="">— none —</option>
-                        {Array.isArray(scales) ? scales.map((s) => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
-                        )) : null}
-                      </select>
-                    </div>
-                  </div>
-                );
-              })()}
-              {(() => {
-                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[activeNoteIdx]) || {};
-                const octVal = n0.octave == null ? '' : String(n0.octave);
-                return (
-                  <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <label htmlFor="octave-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Octave</label>
-                    <div className="select is-small">
-                      <select
-                        id="octave-select-pbind"
-                        value={octVal}
-                        aria-label="Octave"
-                        onChange={(e) => {
-                          const v = e.target.value === '' ? null : Number(e.target.value);
-                          setDraftPoint((dp) => {
-                            if (!dp) return dp;
-                            const notes = [...dp.notes];
-                            const first = { ...(notes[activeNoteIdx] || {}) };
-                            first.octave = v;
-                            notes[activeNoteIdx] = first;
-                            return { ...dp, notes };
-                          });
-                        }}
-                      >
-                        <option value="">—</option>
-                        <option value="0">0</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                        <option value="7">7</option>
-                        <option value="8">8</option>
-                      </select>
-                    </div>
-                  </div>
-                );
-              })()}
-              {(() => {
-                const NOTE_NAMES = ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'];
-                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[activeNoteIdx]) || {};
-                const rootIdx = Number.isFinite(Number(n0.root)) ? ((Number(n0.root) % 12) + 12) % 12 : 0;
-                const draftScaleId = typeof n0.scale === 'string' ? n0.scale : '';
+                const draftScaleId = typeof n0?.scale === 'string' ? n0.scale : '';
+                const octVal = n0?.octave == null ? '' : String(n0.octave);
+                const draftRootIdx = rootIdx;
                 const scaleObj = Array.isArray(scales) ? scales.find((s) => s.id === draftScaleId) : null;
-                const degVal = n0.degree == null ? '' : String(n0.degree);
+                const degVal = n0?.degree == null ? '' : String(n0.degree);
+                const legVal = n0?.legato == null ? '1' : String(n0.legato);
+                const ampVal = n0?.amp == null ? '1' : String(n0.amp);
                 return (
-                  <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <label htmlFor="degree-select-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Degrees</label>
-                    <div className="select is-small">
-                      <select
-                        id="degree-select-pbind"
-                        value={degVal}
-                        aria-label="Selected degree"
+                  <div key={`note-row-${noteIdx}`} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+                      <label className="label is-small" style={{ marginBottom: '0.25rem' }}>Key</label>
+                      <div className="select is-small">
+                        <select
+                          value={rootName}
+                          aria-label={`Key name ${noteIdx + 1}`}
+                          onChange={(e) => {
+                            const name = e.target.value;
+                            const idx = NOTE_NAMES.indexOf(name);
+                            setDraftPoint((dp) => {
+                              if (!dp) return dp;
+                              const notes = [...dp.notes];
+                              const first = { ...(notes[noteIdx] || {}) };
+                              first.root = idx >= 0 ? idx : 0;
+                              notes[noteIdx] = first;
+                              return { ...dp, notes };
+                            });
+                          }}
+                        >
+                          {NOTE_NAMES.map((nm) => (
+                            <option key={nm} value={nm}>{nm}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+                      <label className="label is-small" style={{ marginBottom: '0.25rem' }}>Scale</label>
+                      <div className="select is-small">
+                        <select
+                          value={draftScaleId}
+                          aria-label={`Selected scale ${noteIdx + 1}`}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setDraftPoint((dp) => {
+                              if (!dp) return dp;
+                              const notes = [...dp.notes];
+                              const first = { ...(notes[noteIdx] || {}) };
+                              first.scale = val;
+                              notes[noteIdx] = first;
+                              return { ...dp, notes };
+                            });
+                          }}
+                          style={{ minWidth: '160px' }}
+                        >
+                          <option value="">— none —</option>
+                          {Array.isArray(scales) ? scales.map((s) => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          )) : null}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+                      <label className="label is-small" style={{ marginBottom: '0.25rem' }}>Octave</label>
+                      <div className="select is-small">
+                        <select
+                          value={octVal}
+                          aria-label={`Octave ${noteIdx + 1}`}
+                          onChange={(e) => {
+                            const v = e.target.value === '' ? null : Number(e.target.value);
+                            setDraftPoint((dp) => {
+                              if (!dp) return dp;
+                              const notes = [...dp.notes];
+                              const first = { ...(notes[noteIdx] || {}) };
+                              first.octave = v;
+                              notes[noteIdx] = first;
+                              return { ...dp, notes };
+                            });
+                          }}
+                        >
+                          <option value="">—</option>
+                          <option value="0">0</option>
+                          <option value="1">1</option>
+                          <option value="2">2</option>
+                          <option value="3">3</option>
+                          <option value="4">4</option>
+                          <option value="5">5</option>
+                          <option value="6">6</option>
+                          <option value="7">7</option>
+                          <option value="8">8</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+                      <label className="label is-small" style={{ marginBottom: '0.25rem' }}>Degrees</label>
+                      <div className="select is-small">
+                        <select
+                          value={degVal}
+                          aria-label={`Selected degree ${noteIdx + 1}`}
+                          onChange={(e) => {
+                            const v = e.target.value === '' ? null : Number(e.target.value);
+                            setDraftPoint((dp) => {
+                              if (!dp) return dp;
+                              const notes = [...dp.notes];
+                              const first = { ...(notes[noteIdx] || {}) };
+                              first.degree = v;
+                              notes[noteIdx] = first;
+                              return { ...dp, notes };
+                            });
+                          }}
+                          disabled={!scaleObj || !Array.isArray(scaleObj.degrees) || scaleObj.degrees.length === 0}
+                          style={{ minWidth: '140px' }}
+                        >
+                          <option value="">— degree —</option>
+                          {scaleObj && Array.isArray(scaleObj.degrees)
+                            ? scaleObj.degrees.map((d) => {
+                                const semis = Number(d);
+                                const total = draftRootIdx + semis;
+                                const name = NOTE_NAMES[((total % 12) + 12) % 12];
+                                const octaveOffset = Math.floor(total / 12);
+                                const baseOct = Number.isFinite(Number(n0?.octave)) ? Number(n0.octave) : 0;
+                                const displayOct = baseOct + octaveOffset;
+                                const rootMidi = (baseOct + 1) * 12 + draftRootIdx;
+                                const midi = rootMidi + semis;
+                                const label = `${d}) ${name}${displayOct} (${midi})`;
+                                return (
+                                  <option key={d} value={String(d)}>{label}</option>
+                                );
+                              })
+                            : null}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+                      <label className="label is-small" style={{ marginBottom: '0.25rem' }}>Legato</label>
+                      <input
+                        className="input is-small"
+                        type="number"
+                        step="any"
+                        min={0}
+                        value={legVal}
                         onChange={(e) => {
-                          const v = e.target.value === '' ? null : Number(e.target.value);
+                          const v = e.target.value;
                           setDraftPoint((dp) => {
                             if (!dp) return dp;
                             const notes = [...dp.notes];
-                            const first = { ...(notes[activeNoteIdx] || {}) };
-                            first.degree = v;
-                            notes[activeNoteIdx] = first;
+                            const first = { ...(notes[noteIdx] || {}) };
+                            first.legato = v;
+                            notes[noteIdx] = first;
                             return { ...dp, notes };
                           });
                         }}
-                        disabled={!scaleObj || !Array.isArray(scaleObj.degrees) || scaleObj.degrees.length === 0}
-                        style={{ minWidth: '140px' }}
+                        style={{ width: '6rem' }}
+                      />
+                    </div>
+
+                    <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
+                      <label className="label is-small" style={{ marginBottom: '0.25rem' }}>Amp</label>
+                      <input
+                        className="input is-small"
+                        type="number"
+                        step="any"
+                        min={0}
+                        value={ampVal}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setDraftPoint((dp) => {
+                            if (!dp) return dp;
+                            const notes = [...dp.notes];
+                            const first = { ...(notes[noteIdx] || {}) };
+                            first.amp = v;
+                            notes[noteIdx] = first;
+                            return { ...dp, notes };
+                          });
+                        }}
+                        style={{ width: '6rem' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      {/* Move up */}
+                      <button
+                        type="button"
+                        className="button is-small"
+                        title={`Move note ${noteIdx + 1} up`}
+                        disabled={noteIdx === 0}
+                        onClick={() => {
+                          setDraftPoint((dp) => {
+                            if (!dp) return dp;
+                            const notes = Array.isArray(dp.notes) ? [...dp.notes] : [];
+                            if (noteIdx <= 0 || noteIdx >= notes.length) return dp;
+                            const i = noteIdx;
+                            const j = i - 1;
+                            const tmp = notes[j];
+                            notes[j] = notes[i];
+                            notes[i] = tmp;
+                            return { ...dp, notes };
+                          });
+                          setActiveNoteIdx((ai) => {
+                            if (ai === noteIdx) return Math.max(0, noteIdx - 1);
+                            if (ai === noteIdx - 1) return noteIdx;
+                            return ai;
+                          });
+                        }}
                       >
-                        <option value="">— degree —</option>
-                        {scaleObj && Array.isArray(scaleObj.degrees)
-                          ? scaleObj.degrees.map((d) => {
-                              const semis = Number(d);
-                              const total = rootIdx + semis;
-                              const name = NOTE_NAMES[((total % 12) + 12) % 12];
-                              const octaveOffset = Math.floor(total / 12);
-                              const baseOct = Number.isFinite(Number(n0.octave)) ? Number(n0.octave) : 0;
-                              const displayOct = baseOct + octaveOffset;
-                              const rootMidi = (baseOct + 1) * 12 + rootIdx;
-                              const midi = rootMidi + semis;
-                              const label = `${d}) ${name}${displayOct} (${midi})`;
-                              return (
-                                <option key={d} value={String(d)}>{label}</option>
-                              );
-                            })
-                          : null}
-                      </select>
+                        <span className="icon is-small"><i className="fas fa-arrow-up" aria-hidden="true"></i></span>
+                      </button>
+
+                      {/* Move down */}
+                      <button
+                        type="button"
+                        className="button is-small"
+                        title={`Move note ${noteIdx + 1} down`}
+                        disabled={noteIdx === ((draftPoint?.notes && draftPoint.notes.length) || 1) - 1}
+                        onClick={() => {
+                          setDraftPoint((dp) => {
+                            if (!dp) return dp;
+                            const notes = Array.isArray(dp.notes) ? [...dp.notes] : [];
+                            if (noteIdx < 0 || noteIdx >= notes.length - 1) return dp;
+                            const i = noteIdx;
+                            const j = i + 1;
+                            const tmp = notes[j];
+                            notes[j] = notes[i];
+                            notes[i] = tmp;
+                            return { ...dp, notes };
+                          });
+                          setActiveNoteIdx((ai) => {
+                            if (ai === noteIdx) return Math.min(((draftPoint?.notes && draftPoint.notes.length) || 1) - 1, noteIdx + 1);
+                            if (ai === noteIdx + 1) return noteIdx;
+                            return ai;
+                          });
+                        }}
+                      >
+                        <span className="icon is-small"><i className="fas fa-arrow-down" aria-hidden="true"></i></span>
+                      </button>
+
+                      {/* Remove */}
+                      <button
+                        type="button"
+                        className="button is-small is-danger"
+                        title={`Remove note ${noteIdx + 1}`}
+                        onClick={() => {
+                          setDraftPoint((dp) => {
+                            if (!dp) return dp;
+                            const notes = Array.isArray(dp.notes) ? [...dp.notes] : [];
+                            if (noteIdx < 0 || noteIdx >= notes.length) return dp;
+                            notes.splice(noteIdx, 1);
+                            return { ...dp, notes };
+                          });
+                          setActiveNoteIdx((ai) => Math.max(0, Math.min((draftPoint?.notes?.length || 1) - 2, ai)));
+                        }}
+                      >
+                        <span className="icon is-small"><i className="fas fa-trash" aria-hidden="true"></i></span>
+                      </button>
                     </div>
                   </div>
                 );
-              })()}
-              {(() => {
-                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[activeNoteIdx]) || {};
-                const legVal = n0.legato == null ? '1' : String(n0.legato);
-                return (
-                  <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <label htmlFor="legato-input-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Legato</label>
-                    <input
-                      id="legato-input-pbind"
-                      className="input is-small"
-                      type="number"
-                      step="any"
-                      min={0}
-                      value={legVal}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setDraftPoint((dp) => {
-                          if (!dp) return dp;
-                          const notes = [...dp.notes];
-                          const first = { ...(notes[activeNoteIdx] || {}) };
-                          first.legato = v;
-                          notes[activeNoteIdx] = first;
-                          return { ...dp, notes };
-                        });
-                      }}
-                      style={{ width: '6rem' }}
-                    />
-                  </div>
-                );
-              })()}
-              {(() => {
-                const n0 = (draftPoint && Array.isArray(draftPoint.notes) && draftPoint.notes[activeNoteIdx]) || {};
-                const ampVal = n0.amp == null ? '1' : String(n0.amp);
-                return (
-                  <div className="control" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <label htmlFor="amp-input-pbind" className="label is-small" style={{ marginBottom: '0.25rem' }}>Amp</label>
-                    <input
-                      id="amp-input-pbind"
-                      className="input is-small"
-                      type="number"
-                      step="any"
-                      min={0}
-                      value={ampVal}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setDraftPoint((dp) => {
-                          if (!dp) return dp;
-                          const notes = [...dp.notes];
-                          const first = { ...(notes[activeNoteIdx] || {}) };
-                          first.amp = v;
-                          notes[activeNoteIdx] = first;
-                          return { ...dp, notes };
-                        });
-                      }}
-                      style={{ width: '6rem' }}
-                    />
-                  </div>
-                );
-              })()}
+              })}
             </div>
 
             {/* Draft keyboard preview */}
