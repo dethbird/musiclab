@@ -138,6 +138,17 @@ function Pbind({
     setIsStorageModalOpen(false);
   }
 
+  // Clear all saved points from localStorage and reset in-memory points
+  function clearPoints() {
+    if (!window.confirm('Clear all Pbind points from local storage and start a new timeline? This cannot be undone.')) return;
+    try {
+      localStorage.removeItem(STORAGE_KEY_POINTS);
+    } catch (e) {}
+    setPoints([]);
+    // also clear the storage textarea if it was open
+    setStorageText('');
+  }
+
   function addPoint() {
     const dp = draftPoint;
     if (!dp) return false;
@@ -804,6 +815,20 @@ function Pbind({
                 <i className="fas fa-database" aria-hidden="true"></i>
               </span>
               <span>Export / Import</span>
+            </button>
+          </div>
+          <div className="level-item">
+            <button
+              type="button"
+              className="button is-small"
+              onClick={clearPoints}
+              disabled={points.length < 1}
+              title={points.length < 1 ? 'No points to clear' : 'Clear all Pbind points (localStorage)'}
+            >
+              <span className="icon is-small" style={{ marginRight: 6 }}>
+                <i className="fas fa-trash" aria-hidden="true"></i>
+              </span>
+              <span>Clear</span>
             </button>
           </div>
         </div>
