@@ -1648,7 +1648,64 @@ function Pbind({
                       />
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      {/* Move up */}
+                      <button
+                        type="button"
+                        className="button is-small"
+                        title={`Move note ${noteIdx + 1} up`}
+                        disabled={noteIdx === 0}
+                        onClick={() => {
+                          setDraftPoint((dp) => {
+                            if (!dp) return dp;
+                            const notes = Array.isArray(dp.notes) ? [...dp.notes] : [];
+                            if (noteIdx <= 0 || noteIdx >= notes.length) return dp;
+                            const i = noteIdx;
+                            const j = i - 1;
+                            const tmp = notes[j];
+                            notes[j] = notes[i];
+                            notes[i] = tmp;
+                            return { ...dp, notes };
+                          });
+                          setActiveNoteIdx((ai) => {
+                            if (ai === noteIdx) return Math.max(0, noteIdx - 1);
+                            if (ai === noteIdx - 1) return noteIdx;
+                            return ai;
+                          });
+                        }}
+                      >
+                        <span className="icon is-small"><i className="fas fa-arrow-up" aria-hidden="true"></i></span>
+                      </button>
+
+                      {/* Move down */}
+                      <button
+                        type="button"
+                        className="button is-small"
+                        title={`Move note ${noteIdx + 1} down`}
+                        disabled={noteIdx === ((draftPoint?.notes && draftPoint.notes.length) || 1) - 1}
+                        onClick={() => {
+                          setDraftPoint((dp) => {
+                            if (!dp) return dp;
+                            const notes = Array.isArray(dp.notes) ? [...dp.notes] : [];
+                            if (noteIdx < 0 || noteIdx >= notes.length - 1) return dp;
+                            const i = noteIdx;
+                            const j = i + 1;
+                            const tmp = notes[j];
+                            notes[j] = notes[i];
+                            notes[i] = tmp;
+                            return { ...dp, notes };
+                          });
+                          setActiveNoteIdx((ai) => {
+                            if (ai === noteIdx) return Math.min(((draftPoint?.notes && draftPoint.notes.length) || 1) - 1, noteIdx + 1);
+                            if (ai === noteIdx + 1) return noteIdx;
+                            return ai;
+                          });
+                        }}
+                      >
+                        <span className="icon is-small"><i className="fas fa-arrow-down" aria-hidden="true"></i></span>
+                      </button>
+
+                      {/* Remove */}
                       <button
                         type="button"
                         className="button is-small is-danger"
