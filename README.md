@@ -97,6 +97,64 @@ To be documented here by you. Suggested outline (adjust as needed):
 - Translating Pbind fields to Live instrument parameters
 - Example: driving a Live track from the exported Pbind
 
+#### Example: driving a Live track from the exported Pbind
+
+Follow this one-time and per-session flow to record a Pbind into Ableton and align it to the timeline:
+
+1) Add a throw-away alignment note
+- In your pattern, include a single, very short note at time = 0 (first event). This gives you a clear transient to line up against Ableton’s bar 1 beat 1 after the take is recorded. You’ll delete it after alignment.
+
+2) Create a virtual MIDI port
+- Use loopMIDI and create a port named "SCtoLive" (any name works; just be consistent).
+
+3) Point SuperCollider at that port
+- Run this setup in SuperCollider, then pick the destination index that corresponds to your "SCtoLive" port (change the 0 if needed):
+
+```js
+(
+// MIDI setup
+MIDIClient.init;
+MIDIClient.destinations.do({ |e, i| [i, e.device, e.name].postln; });
+// Pick a destination by index (change 0 if needed):
+~m = MIDIOut(0);
+~m.latency = 0.0;
+)
+```
+
+4) Play the exported Pbind
+- With the MusicLab Pbind preview copied to your clipboard, paste it into SuperCollider and evaluate. For example:
+
+```
+(
+// Tempo
+TempoClock.default.tempo = 60/60;
+
+// Pattern
+Pbind(
+	\instrument, \pmGrowl,
+		ype, \midi,
+	\midiout, ~m,
+	\scale, Pseq([Pn(Scale.major, 2), Rest(), Pn(Scale.major, 7), Rest(), Pn(Scale.major, 3), Rest(), Pn(Scale.major, 7), Rest(), Pn(Scale.major, 4), Rest()], 1),
+	\root,  Pseq([Pn([5, 5], 3), Pn([5, 5, 5], 9), Pn(5, 16)], 1),
+	\octave, Pseq([Pn([4, 4], 2), Rest(), Pn([3, 3, 3], 7), Rest(), [6, 6, 6], 4, 6, Rest(), Pn(5, 7), Rest(), Pn(3, 4), Rest()], 1),
+	\degree, Pseq([Pn([2, 7], 2), Rest(), Pn([0, 2, 7], 7), Rest(), [7, 9, 0], 9, 11, Rest(), Pn(2, 7), Rest(), Pn(5, 3), 7, Rest()], 1),
+	\legato, Pseq([Pn([1, 1], 2), Rest(), Pn([1.1, 1.1, 1.1], 7), Rest(), [1.1, 1.1, 1.1], Pn(1.1, 2), Rest(), Pn(1.1, 7), Rest(), Pn(1, 4), Rest()], 1),
+	\amp, Pseq([Pn([0.85, 0.85], 2), Rest(), Pn([1, 0.8, 0.8], 7), Rest(), [1, 1, 1], Pn(1, 2), Rest(), Pn(1, 7), Rest(), Pn(0.85, 4), Rest()], 1),
+	\strum, Pseq([Pn(0.05, 2), Rest(), Pn(0.08, 7), Rest(), Pn(0, 3), Rest(), Pn(0, 7), Rest(), Pn(0, 4), Rest()], 1),
+	\dur,  Pseq([Pn(1/2, 2), Pn(1/8, 12), 3/8, Pn(1/8, 8), Pn(1, 4), 1/8], 1)
+).play(TempoClock.default)
+)
+```
+
+5) Configure Ableton input and record
+- In Ableton, set your target MIDI track’s input to "SCtoLive".
+- Arm the track and enable Session Record.
+- Start recording in Ableton, then evaluate/play the Pbind in SuperCollider.
+
+6) Align and clean up
+- After recording, align the take’s start so the throw-away note transient lands exactly at bar 1 beat 1 (or your intended start).
+- Delete the throw-away alignment note.
+
 
 ## Notes and conventions
 
