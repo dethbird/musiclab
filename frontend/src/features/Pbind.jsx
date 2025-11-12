@@ -125,9 +125,10 @@ function Pbind({
         return { ...base, strum, notes };
       });
     try {
-      const cleanedSorted = cleaned.map((p) => ({ ...p, notes: sortNotes(p.notes) }));
-      localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(cleanedSorted));
-      setPoints(cleanedSorted);
+      // Preserve the exact order provided by the user in the storage textarea.
+      // Do not automatically sort notes here — user requested manual reordering will be added later.
+      localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(cleaned));
+      setPoints(cleaned);
     } catch (e) {
       // ignore storage failures
       setPoints(cleaned);
@@ -301,8 +302,8 @@ function Pbind({
   // Persist points on change
   useEffect(() => {
     try {
-      const pointsForStorage = points.map((p) => ({ ...p, notes: sortNotes(p.notes) }));
-      localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(pointsForStorage));
+      // Persist the points array as-is. Do not reorder notes on persist — keep exact in-memory order.
+      localStorage.setItem(STORAGE_KEY_POINTS, JSON.stringify(points));
     } catch {}
   }, [points]);
 
